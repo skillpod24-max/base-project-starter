@@ -1,244 +1,203 @@
 @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&display=swap');
 
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  --font-sans: 'Lato', system-ui, -apple-system, sans-serif;
-  --radius-lg: 0.5rem;
-  --radius-md: calc(0.5rem - 2px);
-  --radius-sm: calc(0.5rem - 4px);
+@layer base {
+  :root {
+    --font-sans: 'Lato', system-ui, -apple-system, sans-serif;
+    
+    --background: 220 14% 97%;
+    --foreground: 220 15% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 20%;
+
+    --primary: 4 95% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 15% 20%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 220 15% 94%;
+    --accent-foreground: 220 15% 20%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 4 95% 55%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 35%;
+    --sidebar-primary: 4 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 4 95% 97%;
+    --sidebar-accent-foreground: 4 95% 45%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 4 95% 55%;
+    
+    --chart-1: 4 95% 55%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 220 70% 50%;
+    --chart-5: 280 65% 60%;
+  }
+
+  .dark {
+    --background: 220 20% 10%;
+    --foreground: 220 14% 95%;
+
+    --card: 220 18% 14%;
+    --card-foreground: 220 14% 95%;
+
+    --popover: 220 18% 14%;
+    --popover-foreground: 220 14% 95%;
+
+    --primary: 4 95% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 20%;
+    --secondary-foreground: 220 14% 95%;
+
+    --muted: 220 15% 20%;
+    --muted-foreground: 220 10% 65%;
+
+    --accent: 220 15% 22%;
+    --accent-foreground: 220 14% 95%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 220 15% 25%;
+    --input: 220 15% 25%;
+    --ring: 4 95% 55%;
+
+    --sidebar-background: 220 18% 12%;
+    --sidebar-foreground: 220 14% 90%;
+    --sidebar-primary: 4 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 4 95% 70%;
+    --sidebar-border: 220 15% 20%;
+    --sidebar-ring: 4 95% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-x-hidden antialiased;
+    font-family: var(--font-sans);
+  }
+
+  /* Zoho-style typography */
+  h1 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  h2 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-lg font-medium;
+  }
+
+  h4 {
+    @apply text-base font-medium;
+  }
+}
+
+@layer components {
+  .stat-card {
+    @apply bg-card rounded-lg border border-border p-4 transition-shadow hover:shadow-md;
+  }
   
-  /* Light mode colors */
-  --color-background: hsl(220 14% 97%);
-  --color-foreground: hsl(220 15% 20%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(220 15% 20%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(220 15% 20%);
-  --color-primary: hsl(4 95% 55%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(220 14% 96%);
-  --color-secondary-foreground: hsl(220 15% 20%);
-  --color-muted: hsl(220 14% 96%);
-  --color-muted-foreground: hsl(220 10% 46%);
-  --color-accent: hsl(220 15% 94%);
-  --color-accent-foreground: hsl(220 15% 20%);
-  --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-success: hsl(142 76% 36%);
-  --color-success-foreground: hsl(0 0% 100%);
-  --color-warning: hsl(38 92% 50%);
-  --color-warning-foreground: hsl(0 0% 100%);
-  --color-border: hsl(220 13% 91%);
-  --color-input: hsl(220 13% 91%);
-  --color-ring: hsl(4 95% 55%);
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors;
+  }
   
-  --color-sidebar: hsl(0 0% 100%);
-  --color-sidebar-foreground: hsl(220 15% 35%);
-  --color-sidebar-primary: hsl(4 95% 55%);
-  --color-sidebar-primary-foreground: hsl(0 0% 100%);
-  --color-sidebar-accent: hsl(4 95% 97%);
-  --color-sidebar-accent-foreground: hsl(4 95% 45%);
-  --color-sidebar-border: hsl(220 13% 91%);
-  --color-sidebar-ring: hsl(4 95% 55%);
+  .nav-item-active {
+    @apply bg-primary/10 text-primary;
+  }
   
-  --color-chart-1: hsl(4 95% 55%);
-  --color-chart-2: hsl(142 76% 36%);
-  --color-chart-3: hsl(38 92% 50%);
-  --color-chart-4: hsl(220 70% 50%);
-  --color-chart-5: hsl(280 65% 60%);
-}
+  .nav-item-inactive {
+    @apply text-muted-foreground hover:bg-accent hover:text-foreground;
+  }
 
-/* Dark mode overrides */
-.dark {
-  --color-background: hsl(220 20% 10%);
-  --color-foreground: hsl(220 14% 95%);
-  --color-card: hsl(220 18% 14%);
-  --color-card-foreground: hsl(220 14% 95%);
-  --color-popover: hsl(220 18% 14%);
-  --color-popover-foreground: hsl(220 14% 95%);
-  --color-primary: hsl(4 95% 55%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(220 15% 20%);
-  --color-secondary-foreground: hsl(220 14% 95%);
-  --color-muted: hsl(220 15% 20%);
-  --color-muted-foreground: hsl(220 10% 65%);
-  --color-accent: hsl(220 15% 22%);
-  --color-accent-foreground: hsl(220 14% 95%);
-  --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-success: hsl(142 76% 36%);
-  --color-success-foreground: hsl(0 0% 100%);
-  --color-warning: hsl(38 92% 50%);
-  --color-warning-foreground: hsl(0 0% 100%);
-  --color-border: hsl(220 15% 25%);
-  --color-input: hsl(220 15% 25%);
-  --color-ring: hsl(4 95% 55%);
-  
-  --color-sidebar: hsl(220 18% 12%);
-  --color-sidebar-foreground: hsl(220 14% 90%);
-  --color-sidebar-primary: hsl(4 95% 55%);
-  --color-sidebar-primary-foreground: hsl(0 0% 100%);
-  --color-sidebar-accent: hsl(220 15% 18%);
-  --color-sidebar-accent-foreground: hsl(4 95% 70%);
-  --color-sidebar-border: hsl(220 15% 20%);
-  --color-sidebar-ring: hsl(4 95% 55%);
-}
-
-* {
-  border-color: var(--color-border);
-}
-
-html {
-  font-family: var(--font-sans);
-}
-
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-family: var(--font-sans);
-}
-
-h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-}
-
-h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-}
-
-h3 {
-  font-size: 1.125rem;
-  font-weight: 500;
-}
-
-h4 {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.stat-card {
-  background-color: var(--color-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  padding: 1rem;
-  transition: box-shadow 0.2s;
-}
-
-.stat-card:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.nav-item-active {
-  background-color: hsl(4 95% 55% / 0.1);
-  color: var(--color-primary);
-}
-
-.nav-item-inactive {
-  color: var(--color-muted-foreground);
-}
-
-.nav-item-inactive:hover {
-  background-color: var(--color-accent);
-  color: var(--color-foreground);
-}
-
-.page-container {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-@media (min-width: 768px) {
   .page-container {
-    padding: 1.5rem;
+    @apply p-4 md:p-6 space-y-6 max-w-full overflow-x-hidden;
   }
-}
 
-.page-header {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-@media (min-width: 640px) {
   .page-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4;
   }
-}
 
-.data-table {
-  width: 100%;
-  font-size: 0.875rem;
-}
+  .data-table {
+    @apply w-full text-sm;
+  }
 
-.data-table th {
-  text-align: left;
-  font-weight: 500;
-  color: var(--color-muted-foreground);
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
+  .data-table th {
+    @apply text-left font-medium text-muted-foreground px-4 py-3 border-b;
+  }
 
-.data-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
+  .data-table td {
+    @apply px-4 py-3 border-b;
+  }
 
-.data-table tr:hover {
-  background-color: hsl(220 14% 96% / 0.5);
-}
+  .data-table tr:hover {
+    @apply bg-muted/50;
+  }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
+  .status-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  }
 
-.status-available {
-  background-color: hsl(142 76% 36% / 0.1);
-  color: var(--color-success);
-}
+  .status-available {
+    @apply bg-success/10 text-success;
+  }
 
-.status-booked {
-  background-color: hsl(4 95% 55% / 0.1);
-  color: var(--color-primary);
-}
+  .status-booked {
+    @apply bg-primary/10 text-primary;
+  }
 
-.status-blocked {
-  background-color: var(--color-muted);
-  color: var(--color-muted-foreground);
-}
+  .status-blocked {
+    @apply bg-muted text-muted-foreground;
+  }
 
-.status-completed {
-  background-color: var(--color-accent);
-  color: var(--color-accent-foreground);
+  .status-completed {
+    @apply bg-accent text-accent-foreground;
+  }
 }
 
 /* Print styles for booking ticket */
