@@ -346,6 +346,65 @@ export type Database = {
           },
         ]
       }
+      first_booking_offers: {
+        Row: {
+          applicable_days: string[] | null
+          booking_number: number
+          created_at: string
+          discount_type: string
+          discount_value: number
+          end_hour: number
+          id: string
+          is_active: boolean
+          offer_title: string | null
+          start_hour: number
+          turf_id: string | null
+          updated_at: string
+          urgency_text: string | null
+          user_id: string
+        }
+        Insert: {
+          applicable_days?: string[] | null
+          booking_number?: number
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          end_hour?: number
+          id?: string
+          is_active?: boolean
+          offer_title?: string | null
+          start_hour?: number
+          turf_id?: string | null
+          updated_at?: string
+          urgency_text?: string | null
+          user_id: string
+        }
+        Update: {
+          applicable_days?: string[] | null
+          booking_number?: number
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          end_hour?: number
+          id?: string
+          is_active?: boolean
+          offer_title?: string | null
+          start_hour?: number
+          turf_id?: string | null
+          updated_at?: string
+          urgency_text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "first_booking_offers_turf_id_fkey"
+            columns: ["turf_id"]
+            isOneToOne: false
+            referencedRelation: "turfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_rewards: {
         Row: {
           created_at: string
@@ -813,6 +872,7 @@ export type Database = {
       }
       turfs: {
         Row: {
+          amenities: string[] | null
           avg_rating: number | null
           base_price: number
           city: string | null
@@ -845,6 +905,7 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          amenities?: string[] | null
           avg_rating?: number | null
           base_price: number
           city?: string | null
@@ -877,6 +938,7 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          amenities?: string[] | null
           avg_rating?: number | null
           base_price?: number
           city?: string | null

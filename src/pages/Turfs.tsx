@@ -36,9 +36,28 @@ interface Turf {
   whatsapp_number: string | null;
   state: string | null;
   city: string | null;
+  amenities: string[] | null;
 }
 
 const sportTypes = ['Football', 'Cricket', 'Badminton', 'Tennis', 'Basketball', 'Volleyball', 'Other'];
+
+const amenitiesList = [
+  'Parking',
+  'Changing Rooms',
+  'Washrooms',
+  'Drinking Water',
+  'Floodlights',
+  'First Aid',
+  'Cafeteria',
+  'WiFi',
+  'Seating Area',
+  'Equipment Rental',
+  'Shower',
+  'Locker',
+  'Air Conditioning',
+  'CCTV',
+  'Security',
+];
 
 export default function Turfs() {
   const { user } = useAuth();
@@ -76,6 +95,7 @@ export default function Turfs() {
     city: '',
     latitude: '',
     longitude: '',
+    amenities: [] as string[],
   });
 
   const cities = formData.state ? getCitiesByState(formData.state) : [];
@@ -157,6 +177,7 @@ export default function Turfs() {
       city: formData.city || null,
       latitude: formData.latitude ? Number(formData.latitude) : null,
       longitude: formData.longitude ? Number(formData.longitude) : null,
+      amenities: formData.amenities,
     };
 
     let error;
@@ -202,6 +223,7 @@ export default function Turfs() {
       city: turf.city || '',
       latitude: turf.latitude?.toString() || '',
       longitude: turf.longitude?.toString() || '',
+      amenities: turf.amenities || [],
     });
     setDialogOpen(true);
   };
@@ -263,6 +285,7 @@ export default function Turfs() {
       city: '',
       latitude: '',
       longitude: '',
+      amenities: [],
     });
   };
 
@@ -364,6 +387,29 @@ export default function Turfs() {
               </div>
               <p className="text-xs text-muted-foreground">Add coordinates for accurate distance display to customers</p>
 
+              {/* Amenities Multi-Select */}
+              <div className="space-y-2">
+                <Label>Amenities</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {amenitiesList.map((amenity) => (
+                    <label key={amenity} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.includes(amenity)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({ ...formData, amenities: [...formData.amenities, amenity] });
+                          } else {
+                            setFormData({ ...formData, amenities: formData.amenities.filter(a => a !== amenity) });
+                          }
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      <span className="text-sm">{amenity}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               {/* Images */}
               <div className="space-y-2">
                 <Label>Images (Max 5)</Label>
