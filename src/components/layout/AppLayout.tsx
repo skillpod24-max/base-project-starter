@@ -24,9 +24,9 @@ export const AppLayout = () => {
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-0">
         {/* Mobile header */}
-        <header className="h-16 flex items-center px-4 border-b border-border bg-card md:hidden">
+        <header className="h-16 flex items-center px-4 border-b border-border bg-card md:hidden sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 hover:bg-accent rounded-md"
@@ -36,8 +36,8 @@ export const AppLayout = () => {
           <span className="ml-3 font-semibold">TurfManager</span>
         </header>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-auto">
+        {/* Main content - scrollable independently */}
+        <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

@@ -13,7 +13,8 @@ import {
   X,
   Award,
   Ban,
-  Percent
+  Percent,
+  Gift
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ const navItems = [
   { icon: Percent, label: 'Promo Codes', href: '/promo-codes' },
   { icon: Award, label: 'Loyalty', href: '/loyalty' },
   { icon: Ban, label: 'Blocked Slots', href: '/blocked-slots' },
+  { icon: Gift, label: 'First Booking Offers', href: '/first-booking-offers' },
   { icon: BarChart3, label: 'Reports', href: '/reports' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ];
@@ -53,12 +55,12 @@ export const AppSidebar = ({ isOpen, onClose }: AppSidebarProps) => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Fixed position on desktop */}
       <aside
         className={cn(
-          "fixed md:static inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300 ease-in-out",
-          "md:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300 ease-in-out",
+          "md:sticky md:top-0 md:h-screen",
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
         {/* Header */}
