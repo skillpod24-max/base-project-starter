@@ -85,8 +85,26 @@ export default function MyProfile() {
   }, [user]);
 
   const fetchBookings = async () => {
-    if (!user) return;
+    if (!user || !profile?.phone) {
+      setLoadingBookings(false);
+      return;
+    }
     
+    // First find all customer records matching this user's phone
+    const { data: customerRecords } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('phone', profile.phone);
+    
+    const customerIds = (customerRecords || []).map(c => c.id);
+    
+    if (customerIds.length === 0) {
+      setBookings([]);
+      setLoadingBookings(false);
+      return;
+    }
+    
+    // Query bookings for all matching customer IDs
     const { data } = await supabase
       .from('bookings')
       .select(`
@@ -100,7 +118,7 @@ export default function MyProfile() {
         cancellation_reason,
         turf:turfs(name, location, sport_type)
       `)
-      .or(`customer_id.eq.${profile?.id}`)
+      .in('customer_id', customerIds)
       .order('booking_date', { ascending: false })
       .order('start_time', { ascending: false });
 

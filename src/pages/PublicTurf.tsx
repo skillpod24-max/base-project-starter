@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Clock, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Phone, Loader2, Check, Sparkles, Timer, AlertCircle, Award, Tag, ExternalLink, MessageCircle, Percent, LogIn, Star } from 'lucide-react';
+import { MapPin, Clock, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Phone, Loader2, Check, Sparkles, Timer, AlertCircle, Award, Tag, ExternalLink, MessageCircle, Percent, LogIn, Star, Wifi, Car, Droplets, ShowerHead, Coffee, Dumbbell, Shield, Sun, Wind } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,8 @@ import { usePublicAuth } from '@/hooks/usePublicAuth';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { TurfReviews } from '@/components/TurfReviews';
 import { OfferHighlight } from '@/components/OfferHighlight';
+import { FirstBookingOfferBanner } from '@/components/FirstBookingOfferBanner';
+import { ProgressiveHourUpsell } from '@/components/ProgressiveHourUpsell';
 
 interface Turf {
   id: string;
@@ -23,6 +25,7 @@ interface Turf {
   location: string | null;
   description: string | null;
   images: string[] | null;
+  amenities: string[] | null;
   base_price: number;
   price_1h: number | null;
   price_2h: number | null;
@@ -80,6 +83,18 @@ interface PromoCode {
   max_discount: number | null;
 }
 
+interface FirstBookingOffer {
+  id: string;
+  booking_number: number;
+  discount_type: string;
+  discount_value: number;
+  applicable_days: string[] | null;
+  start_hour: number;
+  end_hour: number;
+  offer_title: string | null;
+  urgency_text: string | null;
+}
+
 interface TicketData {
   booking: any;
   turf: { name: string; sport_type: string; location: string | null };
@@ -122,6 +137,8 @@ export default function PublicTurf() {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [applyingPromo, setApplyingPromo] = useState(false);
+  const [firstBookingOffers, setFirstBookingOffers] = useState<FirstBookingOffer[]>([]);
+  const [customerBookingCount, setCustomerBookingCount] = useState(0);
 
   const sessionId = getSessionId();
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -135,8 +152,16 @@ export default function PublicTurf() {
   useEffect(() => {
     if (turf) {
       fetchOffers();
+      fetchFirstBookingOffers();
     }
   }, [turf]);
+
+  // Fetch customer booking count for first booking offer eligibility
+  useEffect(() => {
+    if (turf && profile?.phone) {
+      fetchCustomerBookingCount();
+    }
+  }, [turf, profile?.phone]);
 
   // Track offer views when offers load
   useEffect(() => {
@@ -243,6 +268,44 @@ export default function PublicTurf() {
       o.turf_id === turf.id || (o.turf_id === null && o.user_id === turf.user_id)
     );
     setOffers(filteredOffers);
+  };
+
+  const fetchFirstBookingOffers = async () => {
+    if (!turf) return;
+    const { data } = await (supabase as any)
+      .from('first_booking_offers')
+      .select('*')
+      .eq('is_active', true)
+      .eq('user_id', turf.user_id)
+      .or(`turf_id.eq.${turf.id},turf_id.is.null`);
+    
+    setFirstBookingOffers(data || []);
+  };
+
+  const fetchCustomerBookingCount = async () => {
+    if (!turf || !profile?.phone) return;
+    
+    // Get customer record for this turf owner matching user's phone
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('phone', profile.phone)
+      .eq('user_id', turf.user_id);
+    
+    if (!customers || customers.length === 0) {
+      setCustomerBookingCount(0);
+      return;
+    }
+    
+    // Count completed bookings for this customer on this turf
+    const { count } = await supabase
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_id', customers[0].id)
+      .eq('turf_id', turf.id)
+      .neq('status', 'cancelled');
+    
+    setCustomerBookingCount(count || 0);
   };
 
   const fetchBookings = async () => {
@@ -523,6 +586,28 @@ export default function PublicTurf() {
     return null;
   };
 
+  const getApplicableFirstBookingOffer = (): FirstBookingOffer | null => {
+    if (!selectedSlot || firstBookingOffers.length === 0) return null;
+
+    const dayOfWeek = format(selectedSlot.date, 'EEEE');
+    const hour = parseInt(selectedSlot.time.split(':')[0]);
+
+    // Find offer matching next booking number for this customer
+    const nextBookingNumber = customerBookingCount + 1;
+
+    for (const offer of firstBookingOffers) {
+      if (offer.booking_number !== nextBookingNumber) continue;
+      
+      const dayMatch = !offer.applicable_days || offer.applicable_days.length === 0 || offer.applicable_days.includes(dayOfWeek);
+      const hourMatch = hour >= offer.start_hour && hour < offer.end_hour;
+      
+      if (dayMatch && hourMatch) {
+        return offer;
+      }
+    }
+    return null;
+  };
+
   const applyPromoCode = async () => {
     if (!promoCode.trim() || !turf) return;
     
@@ -777,6 +862,19 @@ export default function PublicTurf() {
         }),
       });
 
+    // Send push notification to turf manager (non-blocking)
+    supabase.functions.invoke('send-booking-notification', {
+      body: {
+        turf_owner_id: turf.user_id,
+        booking_id: bookingData.id,
+        customer_name: customerName,
+        booking_date: format(selectedSlot.date, 'MMM d, yyyy'),
+        start_time: selectedSlot.time,
+        turf_name: turf.name,
+        amount: totalAmount
+      }
+    }).catch(err => console.log('Push notification error (non-critical):', err));
+
     if (currentHoldId) {
       await supabase.from('slot_holds').delete().eq('id', currentHoldId);
       setCurrentHoldId(null);
@@ -988,6 +1086,35 @@ export default function PublicTurf() {
                   </div>
                 </div>
               </div>
+
+              {/* Amenities */}
+              {turf.amenities && turf.amenities.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h3 className="font-semibold text-gray-900 mb-3">Amenities</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {turf.amenities.map((amenity) => {
+                      const amenityIcons: Record<string, React.ReactNode> = {
+                        'WiFi': <Wifi className="w-4 h-4" />,
+                        'Parking': <Car className="w-4 h-4" />,
+                        'Drinking Water': <Droplets className="w-4 h-4" />,
+                        'Showers': <ShowerHead className="w-4 h-4" />,
+                        'Changing Room': <Shield className="w-4 h-4" />,
+                        'Cafeteria': <Coffee className="w-4 h-4" />,
+                        'First Aid': <Shield className="w-4 h-4" />,
+                        'Floodlights': <Sun className="w-4 h-4" />,
+                        'Air Conditioning': <Wind className="w-4 h-4" />,
+                        'Equipment Rental': <Dumbbell className="w-4 h-4" />,
+                      };
+                      return (
+                        <div key={amenity} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
+                          {amenityIcons[amenity] || <Check className="w-4 h-4" />}
+                          <span>{amenity}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Offer Highlight Section - Above Slots */}
@@ -1173,6 +1300,27 @@ export default function PublicTurf() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Progressive Hour Upsell */}
+                  {turf && parseInt(duration) < 3 && (
+                    <ProgressiveHourUpsell
+                      currentDuration={parseInt(duration)}
+                      currentPrice={pricing.base}
+                      nextDurationPrice={
+                        parseInt(duration) === 1 ? turf.price_2h :
+                        parseInt(duration) === 2 ? turf.price_3h : null
+                      }
+                      onUpgrade={() => handleDurationChange(String(parseInt(duration) + 1))}
+                    />
+                  )}
+
+                  {/* First Booking Offer Banner */}
+                  {getApplicableFirstBookingOffer() && (
+                    <FirstBookingOfferBanner
+                      offer={getApplicableFirstBookingOffer()!}
+                      customerBookingCount={customerBookingCount}
+                    />
+                  )}
 
                   {/* User Info Display */}
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
