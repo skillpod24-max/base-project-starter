@@ -319,12 +319,12 @@ export default function FirstBookingOffers() {
               <div className="space-y-2">
                 <Label>Turf (Optional)</Label>
                 <Select
-                  value={formData.turf_id}
-                  onValueChange={(v) => setFormData({ ...formData, turf_id: v })}
+                  value={formData.turf_id || 'all'}
+                  onValueChange={(v) => setFormData({ ...formData, turf_id: v === 'all' ? '' : v })}
                 >
                   <SelectTrigger><SelectValue placeholder="All Turfs" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Turfs</SelectItem>
+                    <SelectItem value="all">All Turfs</SelectItem>
                     {turfs.map((t) => (
                       <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                     ))}
