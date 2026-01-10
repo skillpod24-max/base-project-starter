@@ -73,14 +73,14 @@ export function SlotCalendar({ onSlotClick, onBookingClick }: SlotCalendarProps)
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const weekEnd = addDays(weekStart, 6);
     
+    // Fetch ALL bookings including cancelled to show them in manager view
     const { data, error } = await supabase
       .from('bookings')
       .select('*, customers(name)')
       .eq('user_id', user.id)
       .eq('turf_id', selectedTurf)
       .gte('booking_date', format(weekStart, 'yyyy-MM-dd'))
-      .lte('booking_date', format(weekEnd, 'yyyy-MM-dd'))
-      .neq('status', 'cancelled');
+      .lte('booking_date', format(weekEnd, 'yyyy-MM-dd'));
     
     console.log('Bookings fetched:', data, error);
     setBookings(data || []);
@@ -103,6 +103,14 @@ export function SlotCalendar({ onSlotClick, onBookingClick }: SlotCalendarProps)
   };
 
   const selectedTurfData = turfs.find(t => t.id === selectedTurf);
+
+  // Format time with AM/PM
+  const formatTimeWithAmPm = (time: string) => {
+    const hour = parseInt(time.split(':')[0]);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:00 ${ampm}`;
+  };
 
   const generateTimeSlots = () => {
     if (!selectedTurfData) return [];
@@ -137,6 +145,10 @@ export function SlotCalendar({ onSlotClick, onBookingClick }: SlotCalendarProps)
     });
     
     if (booking) {
+      // Show cancelled bookings differently
+      if (booking.status === 'cancelled') {
+        return { status: 'cancelled', data: booking };
+      }
       return { status: booking.status === 'completed' ? 'completed' : 'booked', data: booking };
     }
 
@@ -203,6 +215,10 @@ export function SlotCalendar({ onSlotClick, onBookingClick }: SlotCalendarProps)
           <span>Booked</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-red-50 border border-red-400" />
+          <span>Cancelled</span>
+        </div>
+        <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-muted border border-muted-foreground" />
           <span>Blocked</span>
         </div>
@@ -242,7 +258,7 @@ export function SlotCalendar({ onSlotClick, onBookingClick }: SlotCalendarProps)
             {timeSlots.map((time) => (
               <div key={time} className="grid grid-cols-8 border-b last:border-b-0">
                 <div className="p-2 text-xs text-muted-foreground border-r flex items-center">
-                  {time}
+                  {formatTimeWithAmPm(time)}
                 </div>
                 {weekDays.map((day) => {
                   const { status, data } = getSlotStatus(day, time);
@@ -263,6 +279,7 @@ export function SlotCalendar({ onSlotClick, onBookingClick }: SlotCalendarProps)
                         status === 'blocked' && "bg-muted cursor-not-allowed",
                         status === 'past' && "bg-accent cursor-default",
                         status === 'completed' && "bg-accent/50 cursor-default",
+                        status === 'cancelled' && "bg-red-50 hover:bg-red-100 border-l-2 border-red-400",
                       )}
                     >
                       {status === 'booked' && data && (
@@ -275,6 +292,14 @@ export function SlotCalendar({ onSlotClick, onBookingClick }: SlotCalendarProps)
                             (data as Booking).payment_status === 'partial' && "text-primary"
                           )}>
                             {(data as Booking).payment_status}
+                          </div>
+                        </div>
+                      )}
+                      {status === 'cancelled' && data && (
+                        <div className="text-xs truncate px-1">
+                          <span className="font-medium text-red-600 line-through">{(data as Booking).customers?.name}</span>
+                          <div className="text-[10px] mt-0.5 text-red-500">
+                            Cancelled
                           </div>
                         </div>
                       )}

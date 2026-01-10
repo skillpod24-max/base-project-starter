@@ -21,20 +21,36 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
+        // Check if this is a public user (phone-based email)
+        const email = session.user.email || '';
+        if (email.endsWith('@sportsarena.app')) {
+          toast({
+            title: "Access Denied",
+            description: "This login is for turf managers only. Please use the customer login.",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+          return;
+        }
         navigate("/dashboard");
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        const email = session.user.email || '';
+        if (email.endsWith('@sportsarena.app')) {
+          await supabase.auth.signOut();
+          return;
+        }
         navigate("/dashboard");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
