@@ -161,7 +161,8 @@ export default function MyProfile() {
     const now = new Date();
     const hoursUntilBooking = differenceInHours(bookingDateTime, now);
     
-    return hoursUntilBooking >= 5;
+    // Changed from 5 hours to 6 hours as per requirement
+    return hoursUntilBooking >= 6;
   };
 
   const handleCancelClick = (booking: Booking) => {
@@ -402,7 +403,7 @@ export default function MyProfile() {
                       ) : (
                         <span className="text-xs text-gray-400 flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
-                          Cannot cancel within 5 hours
+                          Cannot cancel within 6 hours
                         </span>
                       )}
                     </div>

@@ -405,6 +405,59 @@ export type Database = {
           },
         ]
       }
+      loyalty_milestone_offers: {
+        Row: {
+          created_at: string
+          description: string | null
+          free_hour_on_duration: number | null
+          id: string
+          is_active: boolean
+          milestone_booking_count: number
+          reward_type: string
+          reward_value: number
+          title: string | null
+          turf_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          free_hour_on_duration?: number | null
+          id?: string
+          is_active?: boolean
+          milestone_booking_count?: number
+          reward_type?: string
+          reward_value?: number
+          title?: string | null
+          turf_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          free_hour_on_duration?: number | null
+          id?: string
+          is_active?: boolean
+          milestone_booking_count?: number
+          reward_type?: string
+          reward_value?: number
+          title?: string | null
+          turf_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_milestone_offers_turf_id_fkey"
+            columns: ["turf_id"]
+            isOneToOne: false
+            referencedRelation: "turfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_rewards: {
         Row: {
           created_at: string
@@ -711,6 +764,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      psychological_engines: {
+        Row: {
+          config: Json | null
+          created_at: string
+          engine_name: string
+          engine_type: string
+          id: string
+          is_enabled: boolean
+          priority: number | null
+          updated_at: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          engine_name: string
+          engine_type: string
+          id?: string
+          is_enabled?: boolean
+          priority?: number | null
+          updated_at?: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          engine_name?: string
+          engine_type?: string
+          id?: string
+          is_enabled?: boolean
+          priority?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       public_profiles: {
         Row: {

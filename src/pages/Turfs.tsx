@@ -68,6 +68,15 @@ export default function Turfs() {
   const [editingTurf, setEditingTurf] = useState<Turf | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Format time with AM/PM
+  const formatTimeWithAmPm = (time: string) => {
+    const hour = parseInt(time.split(':')[0]);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:00 ${ampm}`;
+  };
+
   
   const states = getAllStates();
   
@@ -574,7 +583,7 @@ export default function Turfs() {
                 </div>
 
                 <div className="text-xs text-muted-foreground mb-3">
-                  {turf.operating_hours_start.slice(0, 5)} - {turf.operating_hours_end.slice(0, 5)} • {turf.slot_duration} min slots
+                  {formatTimeWithAmPm(turf.operating_hours_start)} - {formatTimeWithAmPm(turf.operating_hours_end)} • {turf.slot_duration} min slots
                 </div>
 
                 <div className="flex gap-2">

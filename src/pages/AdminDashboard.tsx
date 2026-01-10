@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, Building2, Calendar, MapPin, ChevronRight, ChevronLeft, Search, ArrowLeft, Trophy, Phone, Clock, X } from 'lucide-react';
+import { Users, Building2, Calendar, MapPin, ChevronRight, ChevronLeft, Search, ArrowLeft, Trophy, Phone, Clock, X, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { getAllStates, getCitiesByState } from '@/data/indianStates';
 import { cn } from '@/lib/utils';
+import { EnginesPanel } from '@/components/admin/EnginesPanel';
+import { UserDetailDialog } from '@/components/admin/UserDetailDialog';
+import { TurfAnalyticsDialog } from '@/components/admin/TurfAnalyticsDialog';
 
 interface PublicUser {
   id: string;
@@ -62,7 +65,9 @@ export default function AdminDashboard() {
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'managers' | 'arenas'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'managers' | 'arenas' | 'engines'>('users');
+  const [selectedUser, setSelectedUser] = useState<PublicUser | null>(null);
+  const [selectedTurfForAnalytics, setSelectedTurfForAnalytics] = useState<Arena | null>(null);
   
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [managers, setManagers] = useState<TurfManager[]>([]);
@@ -283,6 +288,24 @@ export default function AdminDashboard() {
             <MapPin className="w-5 h-5" />
             <span>Sports Arenas</span>
           </button>
+          <button
+            onClick={() => setActiveTab('engines')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+              activeTab === 'engines' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Engines</span>
+          </button>
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+              activeTab === 'arenas' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            <MapPin className="w-5 h-5" />
+            <span>Sports Arenas</span>
+          </button>
         </nav>
 
         <div className="p-3 border-t border-border">
@@ -379,7 +402,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {filteredUsers.map((u) => (
-                    <tr key={u.id} className="border-t border-border hover:bg-muted/30">
+                    <tr key={u.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedUser(u)}>
                       <td className="px-4 py-3 font-medium">{u.name}</td>
                       <td className="px-4 py-3 text-muted-foreground">{u.phone}</td>
                       <td className="px-4 py-3">
@@ -582,6 +605,25 @@ export default function AdminDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Engines Tab Content */}
+      {activeTab === 'engines' && (
+        <EnginesPanel />
+      )}
+
+      {/* User Detail Dialog */}
+      <UserDetailDialog 
+        user={selectedUser} 
+        open={!!selectedUser} 
+        onClose={() => setSelectedUser(null)} 
+      />
+
+      {/* Turf Analytics Dialog */}
+      <TurfAnalyticsDialog
+        arena={selectedTurfForAnalytics}
+        open={!!selectedTurfForAnalytics}
+        onClose={() => setSelectedTurfForAnalytics(null)}
+      />
     </div>
   );
 }
