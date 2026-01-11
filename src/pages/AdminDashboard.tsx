@@ -298,16 +298,6 @@ export default function AdminDashboard() {
             <Settings className="w-5 h-5" />
             <span>Engines</span>
           </button>
-          <button
-            onClick={() => setActiveTab('arenas')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
-              activeTab === 'arenas' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"
-            )}
-          >
-            <MapPin className="w-5 h-5" />
-            <span>Sports Arenas</span>
-          </button>
         </nav>
 
         <div className="p-3 border-t border-border">
@@ -330,11 +320,13 @@ export default function AdminDashboard() {
                 {activeTab === 'users' && 'Public Users'}
                 {activeTab === 'managers' && 'Turf Managers'}
                 {activeTab === 'arenas' && 'Sports Arenas'}
+                {activeTab === 'engines' && 'Psychological Engines'}
               </h1>
               <p className="text-muted-foreground">
-                {activeTab === 'users' && `${users.length} registered users`}
+                {activeTab === 'users' && `${filteredUsers.length} registered users`}
                 {activeTab === 'managers' && `${managers.length} turf managers`}
-                {activeTab === 'arenas' && `${arenas.length} sports arenas`}
+                {activeTab === 'arenas' && `${filteredArenas.length} sports arenas`}
+                {activeTab === 'engines' && 'Configure behavioral optimization engines'}
               </p>
             </div>
           </div>
@@ -464,8 +456,12 @@ export default function AdminDashboard() {
               {filteredArenas.map((arena) => (
                 <div
                   key={arena.id}
-                  onClick={() => handleArenaClick(arena)}
                   className="bg-card rounded-lg border border-border p-4 cursor-pointer hover:shadow-md hover:border-primary/50 transition-all"
+                >
+                  <div 
+                    onClick={() => handleArenaClick(arena)}
+                    className="cursor-pointer"
+                  >
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -487,12 +483,19 @@ export default function AdminDashboard() {
                     <span className="text-muted-foreground">{arena.sport_type}</span>
                     <span className="font-medium">₹{arena.base_price}/hr</span>
                   </div>
+                  </div>
                   
                   <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
                       {arena.state}, {arena.city}
                     </span>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setSelectedTurfForAnalytics(arena)}
+                    >
+                      View Analytics
+                    </Button>
                   </div>
                 </div>
               ))}
