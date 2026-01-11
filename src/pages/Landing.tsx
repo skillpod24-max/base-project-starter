@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, ArrowRight, Trophy, Calendar, Users, Zap, Shield, Star, ChevronRight, Search, Award, Headphones, CreditCard, CheckCircle, Play, Navigation, Timer, Flame } from 'lucide-react';
+import { MapPin, Clock, ArrowRight, Trophy, Calendar, Users, Zap, Shield, Star, ChevronRight, Search, Award, Headphones, CreditCard, CheckCircle, Play, Navigation, Timer, Flame, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
@@ -536,7 +536,53 @@ export default function Landing() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+          {/* SEO Content Section */}
+          <div className="mb-12 pb-8 border-b border-gray-800">
+            <h3 className="text-lg font-semibold mb-4 text-emerald-400">Book Sports Turfs Online - India's #1 Platform</h3>
+            <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              Sports Arena is India's leading online turf booking platform. Whether you're looking to book a football turf, cricket pitch, badminton court, or tennis court, we make it simple to find and reserve sports venues near you. Our platform connects players with premium sports facilities across Mumbai, Delhi, Bangalore, Chennai, Hyderabad, Pune, and 50+ cities.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-500">
+              <div>
+                <h4 className="text-gray-300 font-medium mb-2">Popular Searches</h4>
+                <ul className="space-y-1">
+                  <li>Football Turf Near Me</li>
+                  <li>Cricket Pitch Booking</li>
+                  <li>Badminton Court Online</li>
+                  <li>Tennis Court Rental</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-gray-300 font-medium mb-2">Top Cities</h4>
+                <ul className="space-y-1">
+                  <li>Mumbai Sports Arenas</li>
+                  <li>Delhi Turf Booking</li>
+                  <li>Bangalore Turfs</li>
+                  <li>Chennai Sports Venues</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-gray-300 font-medium mb-2">Sports Types</h4>
+                <ul className="space-y-1">
+                  <li>5-a-side Football</li>
+                  <li>Box Cricket</li>
+                  <li>Indoor Badminton</li>
+                  <li>Basketball Courts</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-gray-300 font-medium mb-2">Features</h4>
+                <ul className="space-y-1">
+                  <li>Instant Slot Booking</li>
+                  <li>Loyalty Rewards Program</li>
+                  <li>Pay at Venue Option</li>
+                  <li>24/7 Customer Support</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-3 mb-4">
@@ -549,66 +595,110 @@ export default function Landing() {
                 India's premier sports venue booking platform. Find, book, and play at the best turfs near you.
               </p>
               <div className="flex items-center gap-3">
-                <a href="#" className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-500 transition-colors">
-                  <span className="text-sm">📱</span>
+                <a href="#" aria-label="Instagram" className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-500 transition-colors">
+                  <span className="text-lg">📷</span>
                 </a>
-                <a href="#" className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-500 transition-colors">
-                  <span className="text-sm">📧</span>
+                <a href="#" aria-label="Twitter" className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-500 transition-colors">
+                  <span className="text-lg">🐦</span>
+                </a>
+                <a href="#" aria-label="WhatsApp" className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-500 transition-colors">
+                  <span className="text-lg">💬</span>
+                </a>
+                <a href="#" aria-label="Email" className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-emerald-500 transition-colors">
+                  <span className="text-lg">📧</span>
                 </a>
               </div>
             </div>
 
-            {/* Quick Links */}
+            {/* For Players */}
             <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
+              <h4 className="font-semibold mb-4 text-emerald-400">For Players</h4>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link to="/all-turfs" className="hover:text-white transition-colors">All Turfs</Link></li>
+                <li><Link to="/all-turfs" className="hover:text-white transition-colors">Browse All Turfs</Link></li>
                 <li><Link to="/profile" className="hover:text-white transition-colors">My Bookings</Link></li>
-                <li><Link to="/blog" className="hover:text-white transition-colors">Blog</Link></li>
                 <li><Link to="/public-auth" className="hover:text-white transition-colors">Login / Sign Up</Link></li>
+                <li><Link to="/blog" className="hover:text-white transition-colors">Sports Blog</Link></li>
+                <li><a href="#" className="hover:text-white transition-colors">Loyalty Rewards</a></li>
               </ul>
             </div>
 
-            {/* For Managers */}
+            {/* For Turf Owners */}
             <div>
-              <h4 className="font-semibold mb-4">For Turf Owners</h4>
+              <h4 className="font-semibold mb-4 text-emerald-400">For Turf Owners</h4>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link to="/auth" className="hover:text-white transition-colors">Manager Login</Link></li>
+                <li><Link to="/auth" className="hover:text-white transition-colors">Manager Dashboard</Link></li>
                 <li><a href="#" className="hover:text-white transition-colors">List Your Turf</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Partner With Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Pricing Plans</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Analytics & Reports</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Partner Benefits</a></li>
               </ul>
             </div>
 
-            {/* Support */}
+            {/* Company */}
             <div>
-              <h4 className="font-semibold mb-4">Support</h4>
+              <h4 className="font-semibold mb-4 text-emerald-400">Company</h4>
               <ul className="space-y-2 text-gray-400 text-sm">
+                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Press & Media</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+              </ul>
+            </div>
+
+            {/* Legal & Support */}
+            <div>
+              <h4 className="font-semibold mb-4 text-emerald-400">Support</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">FAQs</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Refund Policy</a></li>
               </ul>
             </div>
           </div>
 
+          {/* Trust Badges */}
+          <div className="flex flex-wrap items-center justify-center gap-6 py-6 border-t border-b border-gray-800 mb-8">
+            <div className="flex items-center gap-2 text-gray-400">
+              <Shield className="w-5 h-5 text-emerald-500" />
+              <span className="text-sm">Secure Booking</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <Star className="w-5 h-5 text-emerald-500" />
+              <span className="text-sm">4.8 Rating</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <Users className="w-5 h-5 text-emerald-500" />
+              <span className="text-sm">10,000+ Bookings</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <Zap className="w-5 h-5 text-emerald-500" />
+              <span className="text-sm">Instant Confirmation</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <Award className="w-5 h-5 text-emerald-500" />
+              <span className="text-sm">Verified Venues</span>
+            </div>
+          </div>
+
           {/* Bottom Bar */}
-          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-gray-500 text-sm">
-              © 2025 Sports Arena. All rights reserved.
+              © 2025 Sports Arena. All rights reserved. Made with ❤️ in India
             </p>
             <div className="flex items-center gap-6 text-gray-400 text-sm">
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 500+ Happy Players
               </span>
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                50+ Turfs
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                50+ Premium Turfs
               </span>
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                Pan India
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Pan India Coverage
               </span>
             </div>
           </div>
