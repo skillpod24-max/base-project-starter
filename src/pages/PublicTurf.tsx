@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Clock, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Phone, Loader2, Check, Sparkles, Timer, AlertCircle, Award, Tag, ExternalLink, MessageCircle, Percent, LogIn, Star, Wifi, Car, Droplets, ShowerHead, Coffee, Dumbbell, Shield, Sun, Wind, TrendingDown, Gift } from 'lucide-react';
+import { MapPin, Clock, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Phone, Loader2, Check, Sparkles, Timer, AlertCircle, Award, Tag, ExternalLink, MessageCircle, Percent, LogIn, Star, Wifi, Car, Droplets, ShowerHead, Coffee, Dumbbell, Shield, Sun, Wind, TrendingDown, Gift, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -634,6 +634,21 @@ export default function PublicTurf() {
     return null;
   };
 
+  // Get applicable loyalty milestone offer based on customer's completed bookings at this venue
+  const getApplicableLoyaltyMilestoneOffer = (): LoyaltyMilestoneOffer | null => {
+    if (loyaltyMilestoneOffers.length === 0) return null;
+    
+    // Next booking number (current + 1 for the booking being made)
+    const nextBookingNumber = customerBookingCount + 1;
+    
+    // Find milestone that exactly matches the next booking count
+    const matchingMilestone = loyaltyMilestoneOffers.find(
+      m => m.milestone_booking_count === nextBookingNumber
+    );
+    
+    return matchingMilestone || null;
+  };
+
   const applyPromoCode = async () => {
     if (!promoCode.trim() || !turf) return;
     
@@ -668,7 +683,7 @@ export default function PublicTurf() {
   };
 
   const calculatePrice = () => {
-    if (!turf || !selectedSlot) return { base: 0, discount: 0, final: 0 };
+    if (!turf || !selectedSlot) return { base: 0, discount: 0, final: 0, savingsPercent: 0, discountSource: '', loyaltyReward: null as LoyaltyMilestoneOffer | null };
     const hours = parseInt(duration);
     const day = selectedSlot.date.getDay();
     const isWeekend = day === 0 || day === 6;
@@ -701,10 +716,34 @@ export default function PublicTurf() {
 
     let discount = 0;
     let discountSource = '';
+    let loyaltyReward: LoyaltyMilestoneOffer | null = null;
     
-    // Check for first booking offer first
+    // Check for loyalty milestone offer first (highest priority)
+    const loyaltyMilestoneOffer = getApplicableLoyaltyMilestoneOffer();
+    if (loyaltyMilestoneOffer) {
+      loyaltyReward = loyaltyMilestoneOffer;
+      
+      if (loyaltyMilestoneOffer.reward_type === 'free_hour') {
+        // Free hour applies if booking duration matches requirement
+        const requiredDuration = loyaltyMilestoneOffer.free_hour_on_duration || hours;
+        if (hours >= requiredDuration) {
+          // Deduct one hour's worth
+          const oneHourPrice = basePrice / hours;
+          discount = oneHourPrice;
+          discountSource = 'loyalty_milestone';
+        }
+      } else if (loyaltyMilestoneOffer.reward_type === 'percentage') {
+        discount = Math.round(basePrice * loyaltyMilestoneOffer.reward_value / 100);
+        discountSource = 'loyalty_milestone';
+      } else if (loyaltyMilestoneOffer.reward_type === 'discount') {
+        discount = loyaltyMilestoneOffer.reward_value;
+        discountSource = 'loyalty_milestone';
+      }
+    }
+    
+    // Check for first booking offer (second priority, don't stack with loyalty)
     const firstBookingOffer = getApplicableFirstBookingOffer();
-    if (firstBookingOffer) {
+    if (firstBookingOffer && !loyaltyMilestoneOffer) {
       if (firstBookingOffer.discount_type === 'percentage') {
         discount = Math.round(basePrice * firstBookingOffer.discount_value / 100);
       } else {
@@ -713,9 +752,9 @@ export default function PublicTurf() {
       discountSource = 'first_booking';
     }
     
-    // Then check for general offers (don't stack, use best one)
+    // Then check for general offers (don't stack with above)
     const offer = getApplicableOffer();
-    if (offer && !firstBookingOffer) {
+    if (offer && !firstBookingOffer && !loyaltyMilestoneOffer) {
       if (offer.discount_type === 'percentage') {
         discount = Math.round(basePrice * offer.discount_value / 100);
       } else {
@@ -724,7 +763,7 @@ export default function PublicTurf() {
       discountSource = 'offer';
     }
 
-    // Promo codes stack on top
+    // Promo codes stack on top of all other discounts
     if (appliedPromo && basePrice >= (appliedPromo.min_booking_amount || 0)) {
       let promoDiscount = 0;
       if (appliedPromo.discount_type === 'percentage') {
@@ -745,7 +784,8 @@ export default function PublicTurf() {
       discount,
       final: Math.max(0, basePrice - discount),
       savingsPercent,
-      discountSource
+      discountSource,
+      loyaltyReward
     };
   };
 
@@ -1162,7 +1202,7 @@ export default function PublicTurf() {
               )}
             </div>
 
-            {/* Loyalty Progress Bar - Shows before slot selection */}
+            {/* Loyalty Progress Bar - Shows before slot selection (only for logged in users) */}
             {user && loyaltyMilestoneOffers.length > 0 && (
               <LoyaltyProgressBar
                 currentBookings={customerBookingCount}
@@ -1171,20 +1211,25 @@ export default function PublicTurf() {
               />
             )}
 
-            {/* First Booking Offers Preview - Shows before slot selection */}
-            {firstBookingOffers.length > 0 && user && (
+            {/* First Booking Offers Preview - Shows before slot selection for everyone */}
+            {firstBookingOffers.length > 0 && (
               <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <Gift className="w-6 h-6 text-amber-600" />
                   <div>
-                    <h3 className="font-bold text-gray-900">Special Booking Offers</h3>
-                    <p className="text-sm text-gray-600">Exclusive discounts based on your booking history</p>
+                    <h3 className="font-bold text-gray-900">🎁 Special Booking Offers at This Venue</h3>
+                    <p className="text-sm text-gray-600">
+                      {user 
+                        ? 'Exclusive discounts based on your booking history' 
+                        : 'Login to unlock these exclusive discounts!'}
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {firstBookingOffers.map(offer => {
-                    const isEligible = customerBookingCount + 1 === offer.booking_number;
-                    const isAchieved = customerBookingCount >= offer.booking_number;
+                    // For non-logged in users, show all offers as upcoming
+                    const isEligible = user ? customerBookingCount + 1 === offer.booking_number : false;
+                    const isAchieved = user ? customerBookingCount >= offer.booking_number : false;
                     const label = offer.booking_number === 1 ? '1st' : offer.booking_number === 2 ? '2nd' : offer.booking_number === 3 ? '3rd' : `${offer.booking_number}th`;
                     
                     return (
@@ -1210,7 +1255,7 @@ export default function PublicTurf() {
                             isEligible ? "bg-emerald-100 text-emerald-700" :
                             "bg-amber-100 text-amber-700"
                           )}>
-                            {isAchieved ? '✓ Used' : isEligible ? '🎯 Eligible!' : 'Upcoming'}
+                            {!user ? '🔓 Available' : isAchieved ? '✓ Used' : isEligible ? '🎯 Eligible!' : 'Upcoming'}
                           </span>
                         </div>
                         <p className="text-gray-600 mt-1">
@@ -1478,6 +1523,28 @@ export default function PublicTurf() {
                   </div>
 
                   <div className="border-t border-gray-100 pt-4 mt-4 space-y-3">
+                    {/* Loyalty Milestone Reward Applied */}
+                    {pricing.loyaltyReward && pricing.discountSource === 'loyalty_milestone' && (
+                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-xl p-3">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-5 h-5 text-purple-600" />
+                          <div>
+                            <p className="text-xs text-purple-700 font-bold">🏆 Loyalty Reward Unlocked!</p>
+                            <p className="text-sm text-gray-900">
+                              {pricing.loyaltyReward.title || `${customerBookingCount + 1}th Booking Reward`}
+                            </p>
+                            <p className="text-xs text-purple-600">
+                              {pricing.loyaltyReward.reward_type === 'free_hour' 
+                                ? 'Free Hour Applied!' 
+                                : pricing.loyaltyReward.reward_type === 'percentage'
+                                  ? `${pricing.loyaltyReward.reward_value}% OFF`
+                                  : `₹${pricing.loyaltyReward.reward_value} OFF`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* First Booking Offer Applied */}
                     {getApplicableFirstBookingOffer() && pricing.discountSource === 'first_booking' && (
                       <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-3">
