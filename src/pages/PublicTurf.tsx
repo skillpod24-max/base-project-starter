@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Clock, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Phone, Loader2, Check, Sparkles, Timer, AlertCircle, Award, Tag, ExternalLink, MessageCircle, Percent, LogIn, Star, Wifi, Car, Droplets, ShowerHead, Coffee, Dumbbell, Shield, Sun, Wind } from 'lucide-react';
+import { MapPin, Clock, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Phone, Loader2, Check, Sparkles, Timer, AlertCircle, Award, Tag, ExternalLink, MessageCircle, Percent, LogIn, Star, Wifi, Car, Droplets, ShowerHead, Coffee, Dumbbell, Shield, Sun, Wind, TrendingDown, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,7 @@ import { TurfReviews } from '@/components/TurfReviews';
 import { OfferHighlight } from '@/components/OfferHighlight';
 import { FirstBookingOfferBanner } from '@/components/FirstBookingOfferBanner';
 import { ProgressiveHourUpsell } from '@/components/ProgressiveHourUpsell';
+import { LoyaltyProgressBar } from '@/components/LoyaltyProgressBar';
 
 interface Turf {
   id: string;
@@ -95,6 +96,16 @@ interface FirstBookingOffer {
   urgency_text: string | null;
 }
 
+interface LoyaltyMilestoneOffer {
+  id: string;
+  milestone_booking_count: number;
+  reward_type: string;
+  reward_value: number;
+  free_hour_on_duration: number | null;
+  title: string | null;
+  description: string | null;
+}
+
 interface TicketData {
   booking: any;
   turf: { name: string; sport_type: string; location: string | null };
@@ -138,6 +149,7 @@ export default function PublicTurf() {
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [firstBookingOffers, setFirstBookingOffers] = useState<FirstBookingOffer[]>([]);
+  const [loyaltyMilestoneOffers, setLoyaltyMilestoneOffers] = useState<LoyaltyMilestoneOffer[]>([]);
   const [customerBookingCount, setCustomerBookingCount] = useState(0);
 
   const sessionId = getSessionId();
@@ -153,6 +165,7 @@ export default function PublicTurf() {
     if (turf) {
       fetchOffers();
       fetchFirstBookingOffers();
+      fetchLoyaltyMilestoneOffers();
     }
   }, [turf]);
 
@@ -280,6 +293,19 @@ export default function PublicTurf() {
       .or(`turf_id.eq.${turf.id},turf_id.is.null`);
     
     setFirstBookingOffers(data || []);
+  };
+
+  const fetchLoyaltyMilestoneOffers = async () => {
+    if (!turf) return;
+    const { data } = await supabase
+      .from('loyalty_milestone_offers')
+      .select('*')
+      .eq('is_active', true)
+      .eq('user_id', turf.user_id)
+      .or(`turf_id.eq.${turf.id},turf_id.is.null`)
+      .order('milestone_booking_count', { ascending: true });
+    
+    setLoyaltyMilestoneOffers((data || []) as LoyaltyMilestoneOffer[]);
   };
 
   const fetchCustomerBookingCount = async () => {
@@ -674,16 +700,31 @@ export default function PublicTurf() {
     }
 
     let discount = 0;
+    let discountSource = '';
     
+    // Check for first booking offer first
+    const firstBookingOffer = getApplicableFirstBookingOffer();
+    if (firstBookingOffer) {
+      if (firstBookingOffer.discount_type === 'percentage') {
+        discount = Math.round(basePrice * firstBookingOffer.discount_value / 100);
+      } else {
+        discount = firstBookingOffer.discount_value;
+      }
+      discountSource = 'first_booking';
+    }
+    
+    // Then check for general offers (don't stack, use best one)
     const offer = getApplicableOffer();
-    if (offer) {
+    if (offer && !firstBookingOffer) {
       if (offer.discount_type === 'percentage') {
         discount = Math.round(basePrice * offer.discount_value / 100);
       } else {
         discount = offer.discount_value;
       }
+      discountSource = 'offer';
     }
 
+    // Promo codes stack on top
     if (appliedPromo && basePrice >= (appliedPromo.min_booking_amount || 0)) {
       let promoDiscount = 0;
       if (appliedPromo.discount_type === 'percentage') {
@@ -697,10 +738,14 @@ export default function PublicTurf() {
       discount += promoDiscount;
     }
 
+    const savingsPercent = basePrice > 0 ? Math.round((discount / basePrice) * 100) : 0;
+
     return {
       base: basePrice,
       discount,
-      final: Math.max(0, basePrice - discount)
+      final: Math.max(0, basePrice - discount),
+      savingsPercent,
+      discountSource
     };
   };
 
@@ -1117,6 +1162,67 @@ export default function PublicTurf() {
               )}
             </div>
 
+            {/* Loyalty Progress Bar - Shows before slot selection */}
+            {user && loyaltyMilestoneOffers.length > 0 && (
+              <LoyaltyProgressBar
+                currentBookings={customerBookingCount}
+                milestoneOffers={loyaltyMilestoneOffers}
+                venueName={turf.name}
+              />
+            )}
+
+            {/* First Booking Offers Preview - Shows before slot selection */}
+            {firstBookingOffers.length > 0 && user && (
+              <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Gift className="w-6 h-6 text-amber-600" />
+                  <div>
+                    <h3 className="font-bold text-gray-900">Special Booking Offers</h3>
+                    <p className="text-sm text-gray-600">Exclusive discounts based on your booking history</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {firstBookingOffers.map(offer => {
+                    const isEligible = customerBookingCount + 1 === offer.booking_number;
+                    const isAchieved = customerBookingCount >= offer.booking_number;
+                    const label = offer.booking_number === 1 ? '1st' : offer.booking_number === 2 ? '2nd' : offer.booking_number === 3 ? '3rd' : `${offer.booking_number}th`;
+                    
+                    return (
+                      <div 
+                        key={offer.id} 
+                        className={cn(
+                          "rounded-lg px-3 py-2 text-sm border-2",
+                          isAchieved ? "bg-gray-100 border-gray-300 opacity-60" :
+                          isEligible ? "bg-white border-emerald-400 ring-2 ring-emerald-200" :
+                          "bg-white border-amber-200"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={cn(
+                            "font-bold",
+                            isEligible ? "text-emerald-700" : isAchieved ? "text-gray-500" : "text-amber-700"
+                          )}>
+                            {label} Booking
+                          </span>
+                          <span className={cn(
+                            "text-xs px-2 py-0.5 rounded-full",
+                            isAchieved ? "bg-gray-200 text-gray-600" :
+                            isEligible ? "bg-emerald-100 text-emerald-700" :
+                            "bg-amber-100 text-amber-700"
+                          )}>
+                            {isAchieved ? '✓ Used' : isEligible ? '🎯 Eligible!' : 'Upcoming'}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 mt-1">
+                          {offer.discount_type === 'percentage' ? `${offer.discount_value}% OFF` : `₹${offer.discount_value} OFF`}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Offer Highlight Section - Above Slots */}
             {offers.length > 0 && (
               <OfferHighlight 
@@ -1372,7 +1478,23 @@ export default function PublicTurf() {
                   </div>
 
                   <div className="border-t border-gray-100 pt-4 mt-4 space-y-3">
-                    {applicableOffer && (
+                    {/* First Booking Offer Applied */}
+                    {getApplicableFirstBookingOffer() && pricing.discountSource === 'first_booking' && (
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-3">
+                        <div className="flex items-center gap-2">
+                          <Gift className="w-5 h-5 text-amber-600" />
+                          <div>
+                            <p className="text-xs text-amber-700 font-bold">🎉 Special Offer Applied!</p>
+                            <p className="text-sm text-gray-900">
+                              {getApplicableFirstBookingOffer()?.offer_title || 'First Booking Discount'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Regular Offer Applied */}
+                    {applicableOffer && pricing.discountSource === 'offer' && (
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
                         <div className="flex items-center gap-2">
                           <Percent className="w-5 h-5 text-amber-600" />
@@ -1397,15 +1519,37 @@ export default function PublicTurf() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between text-gray-600">
                         <span>Subtotal</span>
-                        <span>₹{pricing.base}</span>
+                        <span className={pricing.discount > 0 ? "line-through text-gray-400" : ""}>₹{pricing.base}</span>
                       </div>
                       {pricing.discount > 0 && (
-                        <div className="flex justify-between text-green-600">
-                          <span>Discount</span>
-                          <span>-₹{pricing.discount}</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-green-600 flex items-center gap-1">
+                            <TrendingDown className="w-4 h-4" />
+                            Discount
+                          </span>
+                          <div className="text-right">
+                            <span className="text-green-600 font-medium">-₹{pricing.discount}</span>
+                            {pricing.savingsPercent > 0 && (
+                              <span className="ml-2 bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                                {pricing.savingsPercent}% OFF
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
+
+                    {/* Attractive Savings Display */}
+                    {pricing.discount > 0 && (
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 text-center">
+                        <p className="text-green-700 text-sm">
+                          🎉 You're saving <span className="font-bold text-lg">₹{pricing.discount}</span>
+                          {pricing.savingsPercent >= 10 && (
+                            <span className="block text-xs mt-1">That's {pricing.savingsPercent}% off the regular price!</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
 
                     <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-100">
                       <span className="text-gray-700">Total</span>
