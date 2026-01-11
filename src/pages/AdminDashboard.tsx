@@ -298,6 +298,8 @@ export default function AdminDashboard() {
             <Settings className="w-5 h-5" />
             <span>Engines</span>
           </button>
+          <button
+            onClick={() => setActiveTab('arenas')}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
               activeTab === 'arenas' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"
