@@ -462,7 +462,6 @@ export default function AdminDashboard() {
                     onClick={() => handleArenaClick(arena)}
                     className="cursor-pointer"
                   >
-                >
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-semibold">{arena.name}</h3>
