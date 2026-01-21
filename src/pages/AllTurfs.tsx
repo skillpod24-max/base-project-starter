@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, ChevronRight, Filter, Search, X, Trophy, ArrowLeft } from 'lucide-react';
+import { MapPin, Clock, ChevronRight, Filter, Search, X, Trophy, Star, Navigation, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { getAllStates, getCitiesByState } from '@/data/indianStates';
 import { cn } from '@/lib/utils';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { AnimatedSportCarousel } from '@/components/landing/AnimatedSportCarousel';
+import { FeaturedOffersCarousel } from '@/components/landing/FeaturedOffersCarousel';
 
 interface PublicTurf {
   id: string;
@@ -21,6 +23,17 @@ interface PublicTurf {
   operating_hours_end: string;
   state: string | null;
   city: string | null;
+  avg_rating: number | null;
+  review_count: number | null;
+  user_id: string;
+}
+
+interface ActiveOffer {
+  id: string;
+  turf_id: string | null;
+  user_id: string;
+  discount_type: string;
+  discount_value: number;
 }
 
 const sportIcons: Record<string, string> = {
@@ -36,17 +49,19 @@ const sportIcons: Record<string, string> = {
 
 export default function AllTurfs() {
   const [turfs, setTurfs] = useState<PublicTurf[]>([]);
+  const [offers, setOffers] = useState<ActiveOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedState, setSelectedState] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
-  const [selectedSport, setSelectedSport] = useState('all');
+  const [selectedSport, setSelectedSport] = useState('');
 
   const states = getAllStates();
   const cities = selectedState !== 'all' ? getCitiesByState(selectedState) : [];
 
   useEffect(() => {
     fetchTurfs();
+    fetchOffers();
   }, []);
 
   useEffect(() => {
@@ -65,6 +80,24 @@ export default function AllTurfs() {
     setLoading(false);
   };
 
+  const fetchOffers = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase
+      .from('offers')
+      .select('id, turf_id, user_id, discount_type, discount_value')
+      .eq('is_active', true)
+      .lte('valid_from', today)
+      .gte('valid_until', today);
+    setOffers(data || []);
+  };
+
+  const getTurfOffer = (turfId: string, userId: string) => {
+    const turfOffer = offers.find(o => o.turf_id === turfId);
+    if (turfOffer) return turfOffer;
+    const ownerOffer = offers.find(o => o.turf_id === null && o.user_id === userId);
+    return ownerOffer || null;
+  };
+
   const sports = useMemo(() => {
     return [...new Set(turfs.map(t => t.sport_type))];
   }, [turfs]);
@@ -76,7 +109,7 @@ export default function AllTurfs() {
         turf.location?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesState = selectedState === 'all' || turf.state === selectedState;
       const matchesCity = selectedCity === 'all' || turf.city === selectedCity;
-      const matchesSport = selectedSport === 'all' || turf.sport_type === selectedSport;
+      const matchesSport = !selectedSport || turf.sport_type === selectedSport;
       return matchesSearch && matchesState && matchesCity && matchesSport;
     });
   }, [turfs, searchQuery, selectedState, selectedCity, selectedSport]);
@@ -85,63 +118,65 @@ export default function AllTurfs() {
     setSearchQuery('');
     setSelectedState('all');
     setSelectedCity('all');
-    setSelectedSport('all');
+    setSelectedSport('');
   };
 
-  const hasActiveFilters = searchQuery || selectedState !== 'all' || selectedCity !== 'all' || selectedSport !== 'all';
+  const hasActiveFilters = searchQuery || selectedState !== 'all' || selectedCity !== 'all' || selectedSport;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <Trophy className="w-6 h-6 text-white" />
+      <header className="bg-background/80 backdrop-blur-xl border-b border-border sticky top-0 z-50">
+        <nav className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25">
+              <Trophy className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-gray-900">Sports Arena</span>
+            <div>
+              <span className="text-xl font-bold text-foreground tracking-tight">Sports Arena</span>
+              <p className="text-primary text-[10px] font-medium tracking-wide hidden sm:block">BOOK • PLAY • WIN</p>
+            </div>
           </Link>
           <ProfileAvatar />
         </nav>
       </header>
 
-      {/* Hero with Sports Icons */}
-      <section className="bg-gradient-to-br from-emerald-50 via-white to-green-50 py-12 sm:py-16">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex justify-center gap-4 mb-6 flex-wrap">
-            {Object.entries(sportIcons).slice(0, 6).map(([sport, icon]) => (
-              <div 
-                key={sport}
-                onClick={() => setSelectedSport(sport)}
-                className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center text-3xl cursor-pointer transition-all",
-                  selectedSport === sport 
-                    ? "bg-emerald-500 shadow-lg scale-110" 
-                    : "bg-white border border-gray-200 hover:border-emerald-300 hover:shadow-md"
-                )}
-              >
-                {icon}
-              </div>
-            ))}
-          </div>
-          
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Find Your Perfect Sports Arena
+      {/* Hero with Animated Sports */}
+      <section className="relative bg-gradient-to-br from-primary/5 via-background to-primary/10 py-10 sm:py-14 overflow-hidden">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-primary/15 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+        
+        <div className="container mx-auto px-4 text-center relative">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
+            Find Your Perfect
+            <span className="block bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              Sports Arena
+            </span>
           </h1>
-          <p className="text-gray-600 max-w-xl mx-auto">
+          <p className="text-muted-foreground max-w-xl mx-auto mb-8">
             Browse all available venues and book your next game
           </p>
+          
+          {/* Animated Sport Carousel */}
+          <div className="max-w-3xl mx-auto">
+            <AnimatedSportCarousel 
+              selectedSport={selectedSport} 
+              onSelectSport={setSelectedSport} 
+            />
+          </div>
         </div>
       </section>
 
+      {/* Featured Offers */}
+      <FeaturedOffersCarousel selectedState={selectedState} selectedCity={selectedCity} />
+
       {/* Filters */}
-      <section className="py-6 border-b border-gray-100">
+      <section className="py-6 border-b border-border bg-card/50">
         <div className="container mx-auto px-4">
-          <div className="bg-gray-50 rounded-2xl p-4">
+          <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <Select value={selectedState} onValueChange={setSelectedState}>
-                <SelectTrigger className="h-11 bg-white border-gray-200">
-                  <MapPin className="w-4 h-4 mr-2 text-emerald-500" />
+                <SelectTrigger className="h-12 bg-background border-border rounded-xl">
+                  <MapPin className="w-4 h-4 mr-2 text-primary" />
                   <SelectValue placeholder="State" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
@@ -153,8 +188,8 @@ export default function AllTurfs() {
               </Select>
 
               <Select value={selectedCity} onValueChange={setSelectedCity} disabled={selectedState === 'all'}>
-                <SelectTrigger className="h-11 bg-white border-gray-200">
-                  <MapPin className="w-4 h-4 mr-2 text-emerald-500" />
+                <SelectTrigger className="h-12 bg-background border-border rounded-xl">
+                  <MapPin className="w-4 h-4 mr-2 text-primary" />
                   <SelectValue placeholder="City" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
@@ -165,9 +200,9 @@ export default function AllTurfs() {
                 </SelectContent>
               </Select>
 
-              <Select value={selectedSport} onValueChange={setSelectedSport}>
-                <SelectTrigger className="h-11 bg-white border-gray-200">
-                  <Filter className="w-4 h-4 mr-2 text-emerald-500" />
+              <Select value={selectedSport || 'all'} onValueChange={(v) => setSelectedSport(v === 'all' ? '' : v)}>
+                <SelectTrigger className="h-12 bg-background border-border rounded-xl">
+                  <Filter className="w-4 h-4 mr-2 text-primary" />
                   <SelectValue placeholder="Sport" />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,12 +216,12 @@ export default function AllTurfs() {
               </Select>
 
               <div className="relative col-span-2 sm:col-span-1 lg:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search turfs..."
-                  className="pl-10 h-11 bg-white border-gray-200"
+                  className="pl-11 h-12 bg-background border-border rounded-xl"
                 />
               </div>
 
@@ -194,7 +229,7 @@ export default function AllTurfs() {
                 <Button 
                   variant="outline" 
                   onClick={clearFilters} 
-                  className="h-11 border-gray-200 text-gray-600"
+                  className="h-12 border-border rounded-xl"
                 >
                   <X className="w-4 h-4 mr-2" /> Clear
                 </Button>
@@ -205,77 +240,110 @@ export default function AllTurfs() {
       </section>
 
       {/* Results */}
-      <section className="py-8">
+      <section className="py-10">
         <div className="container mx-auto px-4">
-          <p className="text-gray-500 text-sm mb-6">
+          <p className="text-muted-foreground text-sm mb-6">
             Showing {filteredTurfs.length} {filteredTurfs.length === 1 ? 'arena' : 'arenas'}
+            {selectedSport && ` for ${selectedSport}`}
           </p>
 
           {loading ? (
             <div className="flex justify-center py-20">
-              <div className="w-12 h-12 rounded-full border-4 border-emerald-200 border-t-emerald-500 animate-spin" />
+              <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
             </div>
           ) : filteredTurfs.length === 0 ? (
-            <div className="text-center py-20 bg-gray-50 rounded-2xl">
-              <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-xl text-gray-900 mb-2">No arenas found</p>
-              <p className="text-gray-500 mb-4">Try adjusting your filters</p>
+            <div className="text-center py-20 bg-card rounded-2xl border border-border">
+              <MapPin className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-xl text-foreground font-medium mb-2">No arenas found</p>
+              <p className="text-muted-foreground mb-4">Try adjusting your filters</p>
               {hasActiveFilters && (
-                <Button variant="outline" onClick={clearFilters}>
+                <Button variant="outline" onClick={clearFilters} className="rounded-xl">
                   Clear Filters
                 </Button>
               )}
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredTurfs.map((turf) => (
-                <Link
-                  key={turf.id}
-                  to={`/turf/${turf.id}`}
-                  className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl hover:border-emerald-200 transition-all"
-                >
-                  <div className="aspect-[16/10] relative overflow-hidden bg-gray-100">
-                    {turf.images && turf.images.length > 0 ? (
-                      <img 
-                        src={turf.images[0]} 
-                        alt={turf.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-200 text-6xl">
-                        {sportIcons[turf.sport_type] || '🏆'}
+              {filteredTurfs.map((turf) => {
+                const offer = getTurfOffer(turf.id, turf.user_id);
+                
+                return (
+                  <Link
+                    key={turf.id}
+                    to={`/turf/${turf.id}`}
+                    className="group bg-card rounded-2xl overflow-hidden border border-border hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-300"
+                  >
+                    <div className="aspect-[4/3] relative overflow-hidden">
+                      {turf.images && turf.images.length > 0 ? (
+                        <img 
+                          src={turf.images[0]} 
+                          alt={turf.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                          <span className="text-6xl opacity-50">{sportIcons[turf.sport_type] || '🏟️'}</span>
+                        </div>
+                      )}
+                      
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                      
+                      {/* Sport Badge */}
+                      <div className="absolute top-3 right-3">
+                        <span className="bg-primary text-primary-foreground px-2.5 py-1 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                          <span>{sportIcons[turf.sport_type] || '🏟️'}</span>
+                          {turf.sport_type}
+                        </span>
                       </div>
-                    )}
-                    <div className="absolute top-3 right-3">
-                      <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                        {turf.sport_type}
-                      </span>
+                      
+                      {/* Offer Badge */}
+                      {offer && (
+                        <div className="absolute top-3 left-3">
+                          <span className="bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground px-2.5 py-1 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1">
+                            <Flame className="w-3 h-3" />
+                            {offer.discount_type === 'percentage' ? `${offer.discount_value}%` : `₹${offer.discount_value}`} OFF
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Bottom Info */}
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <h3 className="text-white font-bold text-lg line-clamp-1 mb-1">{turf.name}</h3>
+                        {turf.location && (
+                          <p className="text-white/80 text-sm flex items-center gap-1.5 line-clamp-1">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                            {turf.city || turf.location}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-emerald-600 transition-colors line-clamp-1">
-                      {turf.name}
-                    </h3>
-                    {turf.location && (
-                      <p className="text-gray-500 text-sm flex items-center gap-1 mb-3 line-clamp-1">
-                        <MapPin className="w-3 h-3 flex-shrink-0" />
-                        {turf.location}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {turf.operating_hours_start.slice(0, 5)} - {turf.operating_hours_end.slice(0, 5)}
+                    <div className="p-4 flex items-center justify-between bg-card">
+                      <div>
+                        <p className="text-muted-foreground text-xs font-medium mb-0.5">Starting from</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          ₹{turf.price_1h || turf.base_price}
+                          <span className="text-sm font-normal text-muted-foreground">/hr</span>
+                        </p>
                       </div>
-                      <span className="font-bold text-emerald-600">
-                        ₹{turf.price_1h || turf.base_price}
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        {turf.avg_rating && turf.avg_rating > 0 && (
+                          <div className="flex items-center gap-1 bg-warning/10 px-2 py-0.5 rounded-md">
+                            <Star className="w-3.5 h-3.5 text-warning fill-warning" />
+                            <span className="font-semibold text-sm text-warning">{turf.avg_rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                        <div className="text-muted-foreground text-xs flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {turf.operating_hours_start.slice(0, 5)} - {turf.operating_hours_end.slice(0, 5)}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

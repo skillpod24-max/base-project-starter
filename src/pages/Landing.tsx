@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { cn } from '@/lib/utils';
 import { differenceInHours, differenceInMinutes } from 'date-fns';
+import { AnimatedSportCarousel } from '@/components/landing/AnimatedSportCarousel';
+import { FeaturedOffersCarousel } from '@/components/landing/FeaturedOffersCarousel';
 
 interface PublicTurf {
   id: string;
@@ -136,6 +138,7 @@ export default function Landing() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [selectedSport, setSelectedSport] = useState('');
 
   useEffect(() => {
     fetchPublicTurfs();
@@ -217,12 +220,19 @@ export default function Landing() {
   }, [turfs, userLocation]);
 
   const nearbyTurfs = useMemo(() => {
-    const turfsWithCoords = turfsWithDistance.filter(t => t.distance !== null);
+    let filtered = turfsWithDistance;
+    
+    // Filter by selected sport if any
+    if (selectedSport) {
+      filtered = filtered.filter(t => t.sport_type === selectedSport);
+    }
+    
+    const turfsWithCoords = filtered.filter(t => t.distance !== null);
     if (turfsWithCoords.length >= 4) {
       return turfsWithCoords.slice(0, 4);
     }
-    return turfsWithDistance.slice(0, 4);
-  }, [turfsWithDistance]);
+    return filtered.slice(0, 4);
+  }, [turfsWithDistance, selectedSport]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -275,10 +285,18 @@ export default function Landing() {
                 <span className="text-muted-foreground text-3xl sm:text-4xl md:text-5xl font-bold">Near You</span>
               </h1>
               
-              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
                 Premium football turfs, cricket pitches, badminton courts & more. 
                 <span className="text-foreground font-medium"> Zero advance payment. Instant confirmation.</span>
               </p>
+            </div>
+
+            {/* Animated Sport Carousel */}
+            <div className="max-w-4xl mx-auto mb-10">
+              <AnimatedSportCarousel 
+                selectedSport={selectedSport} 
+                onSelectSport={setSelectedSport} 
+              />
             </div>
 
             {/* Search Bar - Redesigned */}
@@ -330,6 +348,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Featured Offers Carousel */}
+      <FeaturedOffersCarousel />
 
       {/* Nearby Turfs Section - Redesigned Cards */}
       {!loading && nearbyTurfs.length > 0 && (

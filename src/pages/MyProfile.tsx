@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Phone, Calendar, Clock, MapPin, Trophy, AlertCircle, CheckCircle, ArrowLeft, LogOut, Star, Lock, Award, TrendingUp, Heart, Eye, EyeOff } from 'lucide-react';
+import { User, Phone, Calendar, Clock, MapPin, Trophy, AlertCircle, CheckCircle, ArrowLeft, LogOut, Star, Lock, Award, TrendingUp, Heart, Eye, EyeOff, Sparkles, Zap, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -90,7 +90,6 @@ export default function MyProfile() {
       return;
     }
     
-    // First find all customer records matching this user's phone
     const { data: customerRecords } = await supabase
       .from('customers')
       .select('id')
@@ -104,7 +103,6 @@ export default function MyProfile() {
       return;
     }
     
-    // Query bookings for all matching customer IDs
     const { data } = await supabase
       .from('bookings')
       .select(`
@@ -129,7 +127,6 @@ export default function MyProfile() {
     setLoadingBookings(false);
   };
 
-  // Stats calculations
   const stats = useMemo(() => {
     const completedBookings = bookings.filter(b => 
       b.status !== 'cancelled' && new Date(`${b.booking_date}T${b.end_time}`) <= new Date()
@@ -139,11 +136,9 @@ export default function MyProfile() {
     const totalSpent = completedBookings.reduce((sum, b) => sum + b.total_amount, 0);
     const loyaltyPoints = Math.floor(totalSpent / 100) * 10;
     
-    // Booking score (based on bookings and no-shows)
     const cancelledCount = bookings.filter(b => b.status === 'cancelled').length;
     const score = Math.max(0, Math.min(100, 100 - (cancelledCount * 10) + (totalBookings * 2)));
     
-    // Favorite sport
     const sportCounts: Record<string, number> = {};
     completedBookings.forEach(b => {
       const sport = b.sport_type || b.turf.sport_type;
@@ -161,7 +156,6 @@ export default function MyProfile() {
     const now = new Date();
     const hoursUntilBooking = differenceInHours(bookingDateTime, now);
     
-    // Changed from 5 hours to 6 hours as per requirement
     return hoursUntilBooking >= 6;
   };
 
@@ -247,22 +241,22 @@ export default function MyProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-12 h-12 rounded-full border-4 border-emerald-200 border-t-emerald-500 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+      <header className="bg-card border-b border-border sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700">
+          <Link to="/" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
             <ArrowLeft className="w-5 h-5" />
             <span className="font-medium">Back</span>
           </Link>
-          <Button variant="ghost" onClick={handleSignOut} className="text-gray-600 hover:text-red-600">
+          <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground hover:text-destructive">
             <LogOut className="w-4 h-4 mr-2" />
             Logout
           </Button>
@@ -270,74 +264,89 @@ export default function MyProfile() {
       </header>
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Profile Card */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg">
-              <span className="text-3xl font-bold text-white">
+        {/* Profile Card - Redesigned */}
+        <div className="relative bg-gradient-to-br from-primary/10 via-card to-primary/5 rounded-3xl border border-border p-6 sm:p-8 mb-6 overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-warning/10 rounded-full blur-3xl" />
+          
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-2xl shadow-primary/30">
+              <span className="text-4xl font-bold text-primary-foreground">
                 {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{profile?.name || 'User'}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-gray-500 mt-2">
-                <span className="flex items-center gap-1">
-                  <Phone className="w-4 h-4" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{profile?.name || 'User'}</h1>
+              <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+                <span className="flex items-center gap-1.5 bg-card/80 px-3 py-1.5 rounded-full text-sm">
+                  <Phone className="w-4 h-4 text-primary" />
                   {profile?.phone || 'No phone'}
                 </span>
                 {profile?.email && (
-                  <span className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
+                  <span className="flex items-center gap-1.5 bg-card/80 px-3 py-1.5 rounded-full text-sm">
+                    <User className="w-4 h-4 text-primary" />
                     {profile.email}
                   </span>
                 )}
               </div>
             </div>
-            <Button variant="outline" onClick={() => setPasswordDialogOpen(true)} className="gap-2">
+            <Button variant="outline" onClick={() => setPasswordDialogOpen(true)} className="gap-2 rounded-xl border-primary/30">
               <Lock className="w-4 h-4" />
               Change Password
             </Button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-            <Award className="w-6 h-6 text-amber-500 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">{stats.loyaltyPoints}</p>
-            <p className="text-gray-500 text-sm">Loyalty Points</p>
+        {/* Stats Cards - Redesigned */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-warning/10 to-card rounded-2xl border border-warning/20 p-5 text-center group hover:shadow-lg transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-warning/20 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+              <Award className="w-6 h-6 text-warning" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">{stats.loyaltyPoints}</p>
+            <p className="text-muted-foreground text-sm mt-1">Loyalty Points</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-            <TrendingUp className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">{stats.score}</p>
-            <p className="text-gray-500 text-sm">Booking Score</p>
+          
+          <div className="bg-gradient-to-br from-success/10 to-card rounded-2xl border border-success/20 p-5 text-center group hover:shadow-lg transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-success/20 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-6 h-6 text-success" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">{stats.score}</p>
+            <p className="text-muted-foreground text-sm mt-1">Booking Score</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-            <Calendar className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
-            <p className="text-gray-500 text-sm">Total Bookings</p>
+          
+          <div className="bg-gradient-to-br from-primary/10 to-card rounded-2xl border border-primary/20 p-5 text-center group hover:shadow-lg transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+              <Calendar className="w-6 h-6 text-primary" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">{stats.totalBookings}</p>
+            <p className="text-muted-foreground text-sm mt-1">Total Bookings</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-            <Heart className="w-6 h-6 text-rose-500 mx-auto mb-2" />
-            <p className="text-xl font-bold text-gray-900 flex items-center justify-center gap-1">
+          
+          <div className="bg-gradient-to-br from-destructive/10 to-card rounded-2xl border border-destructive/20 p-5 text-center group hover:shadow-lg transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-destructive/20 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+              <Heart className="w-6 h-6 text-destructive" />
+            </div>
+            <p className="text-2xl font-bold text-foreground flex items-center justify-center gap-1">
               {stats.favoriteSport ? (
                 <>
-                  {sportIcons[stats.favoriteSport] || '🏟️'}
+                  <span className="text-3xl">{sportIcons[stats.favoriteSport] || '🏟️'}</span>
                 </>
               ) : '-'}
             </p>
-            <p className="text-gray-500 text-sm">Favorite Sport</p>
+            <p className="text-muted-foreground text-sm mt-1">Favorite Sport</p>
           </div>
         </div>
 
-        {/* Bookings Tabs */}
+        {/* Bookings Tabs - Redesigned */}
         <Tabs defaultValue="upcoming" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-100">
-            <TabsTrigger value="upcoming" className="gap-2">
+          <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl h-12">
+            <TabsTrigger value="upcoming" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
               <Calendar className="w-4 h-4" />
               Upcoming ({upcomingBookings.length})
             </TabsTrigger>
-            <TabsTrigger value="history" className="gap-2">
+            <TabsTrigger value="history" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
               <Clock className="w-4 h-4" />
               History ({pastBookings.length})
             </TabsTrigger>
@@ -345,64 +354,70 @@ export default function MyProfile() {
 
           <TabsContent value="upcoming">
             {loadingBookings ? (
-              <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-                <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin mx-auto" />
+              <div className="bg-card rounded-2xl border border-border p-8 text-center">
+                <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
               </div>
             ) : upcomingBookings.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No upcoming bookings</p>
-                <Link to="/" className="mt-4 inline-block text-emerald-600 hover:underline">
-                  Book a turf →
+              <div className="bg-card rounded-2xl border border-border p-10 text-center">
+                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-foreground font-medium mb-2">No upcoming bookings</p>
+                <p className="text-muted-foreground text-sm mb-4">Ready to play? Book a turf now!</p>
+                <Link to="/">
+                  <Button className="rounded-xl bg-primary hover:bg-primary/90">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Book a Turf
+                  </Button>
                 </Link>
               </div>
             ) : (
               <div className="space-y-4">
                 {upcomingBookings.map((booking) => (
-                  <div key={booking.id} className="bg-white rounded-xl border border-emerald-100 p-5 shadow-sm">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-2xl">
+                  <div key={booking.id} className="bg-card rounded-2xl border border-primary/20 p-5 shadow-sm hover:shadow-lg transition-all">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl">
                           {sportIcons[booking.sport_type || booking.turf.sport_type] || '🏟️'}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{booking.turf.name}</h3>
-                          <p className="text-gray-500 text-sm flex items-center gap-1 mt-1">
-                            <MapPin className="w-3 h-3" />
+                          <h3 className="font-semibold text-foreground text-lg">{booking.turf.name}</h3>
+                          <p className="text-muted-foreground text-sm flex items-center gap-1.5 mt-1">
+                            <MapPin className="w-3.5 h-3.5" />
                             {booking.turf.location || 'No location'}
                           </p>
                         </div>
                       </div>
-                      <span className="bg-emerald-100 text-emerald-700 text-xs font-medium px-2 py-1 rounded-full">
+                      <span className="bg-primary/10 text-primary text-xs font-semibold px-3 py-1.5 rounded-full">
                         {booking.turf.sport_type}
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {format(parseISO(booking.booking_date), 'MMM d, yyyy')}
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4 bg-muted/50 rounded-xl p-3">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        {format(parseISO(booking.booking_date), 'EEEE, MMM d')}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-primary" />
                         {booking.start_time.slice(0, 5)} - {booking.end_time.slice(0, 5)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="font-semibold text-gray-900 text-lg">₹{booking.total_amount}</span>
+                    <div className="flex items-center justify-between pt-4 border-t border-border">
+                      <span className="font-bold text-foreground text-xl">₹{booking.total_amount}</span>
                       {canCancelBooking(booking) ? (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleCancelClick(booking)}
-                          className="text-red-600 border-red-200 hover:bg-red-50"
+                          className="text-destructive border-destructive/30 hover:bg-destructive/10 rounded-xl"
                         >
                           Cancel Booking
                         </Button>
                       ) : (
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
+                        <span className="text-xs text-muted-foreground flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-full">
+                          <AlertCircle className="w-3.5 h-3.5" />
                           Cannot cancel within 6 hours
                         </span>
                       )}
@@ -415,8 +430,11 @@ export default function MyProfile() {
 
           <TabsContent value="history">
             {pastBookings.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-                <p className="text-gray-500">No past bookings</p>
+              <div className="bg-card rounded-2xl border border-border p-10 text-center">
+                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">No past bookings</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -424,36 +442,39 @@ export default function MyProfile() {
                   <div 
                     key={booking.id} 
                     className={cn(
-                      "bg-white rounded-xl border p-4",
-                      booking.status === 'cancelled' ? 'border-red-100 bg-red-50/50' : 'border-gray-100'
+                      "bg-card rounded-2xl border p-4 transition-all",
+                      booking.status === 'cancelled' ? 'border-destructive/20 bg-destructive/5' : 'border-border hover:shadow-sm'
                     )}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-xl">
+                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
                           {sportIcons[booking.sport_type || booking.turf.sport_type] || '🏟️'}
                         </div>
                         <div>
-                          <h3 className="font-medium text-gray-900">{booking.turf.name}</h3>
-                          <p className="text-gray-500 text-sm mt-1">
+                          <h3 className="font-medium text-foreground">{booking.turf.name}</h3>
+                          <p className="text-muted-foreground text-sm mt-0.5">
                             {format(parseISO(booking.booking_date), 'MMM d, yyyy')} • {booking.start_time.slice(0, 5)}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         {booking.status === 'cancelled' ? (
-                          <span className="text-red-600 text-sm font-medium">Cancelled</span>
+                          <span className="text-destructive text-sm font-medium flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            Cancelled
+                          </span>
                         ) : (
-                          <span className="text-gray-500 text-sm flex items-center gap-1">
-                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                          <span className="text-success text-sm flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" />
                             Completed
                           </span>
                         )}
-                        <p className="text-gray-900 font-medium mt-1">₹{booking.total_amount}</p>
+                        <p className="text-foreground font-semibold mt-1">₹{booking.total_amount}</p>
                       </div>
                     </div>
                     {booking.status === 'cancelled' && booking.cancellation_reason && (
-                      <p className="text-red-600 text-xs mt-2">
+                      <p className="text-destructive/80 text-xs mt-3 bg-destructive/10 rounded-lg px-3 py-2">
                         Reason: {booking.cancellation_reason}
                       </p>
                     )}
@@ -467,7 +488,7 @@ export default function MyProfile() {
 
       {/* Cancel Dialog */}
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Cancel Booking</DialogTitle>
             <DialogDescription>
@@ -477,7 +498,7 @@ export default function MyProfile() {
 
           <RadioGroup value={cancelReason} onValueChange={setCancelReason} className="space-y-3">
             {cancellationReasons.map((reason) => (
-              <div key={reason} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <div key={reason} className="flex items-center space-x-3 p-3 border border-border rounded-xl hover:bg-muted/50 transition-colors">
                 <RadioGroupItem value={reason} id={reason} />
                 <Label htmlFor={reason} className="flex-1 cursor-pointer">{reason}</Label>
               </div>
@@ -489,18 +510,18 @@ export default function MyProfile() {
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
               placeholder="Please specify your reason..."
-              className="mt-3"
+              className="mt-3 rounded-xl"
             />
           )}
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)} className="rounded-xl">
               Keep Booking
             </Button>
             <Button 
               onClick={handleCancelBooking}
               disabled={!cancelReason || (cancelReason === 'Other' && !customReason) || cancelling}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90 rounded-xl"
             >
               {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
             </Button>
@@ -510,7 +531,7 @@ export default function MyProfile() {
 
       {/* Change Password Dialog */}
       <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
@@ -527,11 +548,12 @@ export default function MyProfile() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter new password"
+                  className="rounded-xl"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasswords(!showPasswords)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -544,18 +566,19 @@ export default function MyProfile() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
+                className="rounded-xl"
               />
             </div>
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)} className="rounded-xl">
               Cancel
             </Button>
             <Button 
               onClick={handleChangePassword}
               disabled={!newPassword || !confirmPassword || changingPassword}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-primary hover:bg-primary/90 rounded-xl"
             >
               {changingPassword ? 'Updating...' : 'Update Password'}
             </Button>
