@@ -17,6 +17,7 @@ import { OfferHighlight } from '@/components/OfferHighlight';
 import { FirstBookingOfferBanner } from '@/components/FirstBookingOfferBanner';
 import { ProgressiveHourUpsell } from '@/components/ProgressiveHourUpsell';
 import { LoyaltyProgressBar } from '@/components/LoyaltyProgressBar';
+import { OfferMiniBar } from '@/components/turf/OfferMiniBar';
 
 interface Turf {
   id: string;
@@ -1032,6 +1033,17 @@ export default function PublicTurf() {
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Turf Details */}
           <div className="lg:col-span-2 space-y-6 order-1">
+            {/* Offer Mini Bar - Sticky at top */}
+            <OfferMiniBar
+              offers={offers}
+              firstBookingOffers={firstBookingOffers}
+              loyaltyMilestoneOffers={loyaltyMilestoneOffers}
+              customerBookingCount={customerBookingCount}
+              onScrollToOffers={() => {
+                document.getElementById('offers-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            />
+
             {/* Image Gallery */}
             <div className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 shadow-lg">
               {turf.images && turf.images.length > 0 ? (

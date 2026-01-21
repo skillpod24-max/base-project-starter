@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, Building2, Calendar, MapPin, ChevronRight, ChevronLeft, Search, ArrowLeft, Trophy, Phone, Clock, X, Settings } from 'lucide-react';
+import { Users, Building2, Calendar, MapPin, ChevronRight, ChevronLeft, Search, ArrowLeft, Trophy, Phone, Clock, X, Settings, DollarSign, TrendingUp, BarChart3, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { format, parseISO, startOfWeek, addDays, isSameDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { getAllStates, getCitiesByState } from '@/data/indianStates';
 import { cn } from '@/lib/utils';
 import { EnginesPanel } from '@/components/admin/EnginesPanel';
 import { UserDetailDialog } from '@/components/admin/UserDetailDialog';
 import { TurfAnalyticsDialog } from '@/components/admin/TurfAnalyticsDialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface PublicUser {
   id: string;
@@ -31,6 +33,7 @@ interface TurfManager {
   email: string;
   created_at: string;
   turfs_count: number;
+  total_revenue: number;
 }
 
 interface Arena {
@@ -54,8 +57,21 @@ interface Booking {
   start_time: string;
   end_time: string;
   total_amount: number;
+  paid_amount: number;
+  pending_amount: number;
   status: string;
+  payment_method: string | null;
   customer: { name: string; phone: string } | null;
+  turf: { name: string; sport_type: string } | null;
+}
+
+interface ReportStats {
+  totalBookings: number;
+  totalRevenue: number;
+  totalPending: number;
+  cashRevenue: number;
+  onlineRevenue: number;
+  avgBookingValue: number;
 }
 
 export default function AdminDashboard() {
@@ -65,23 +81,26 @@ export default function AdminDashboard() {
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'managers' | 'arenas' | 'engines'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'managers' | 'arenas' | 'bookings' | 'reports' | 'engines'>('users');
   const [selectedUser, setSelectedUser] = useState<PublicUser | null>(null);
   const [selectedTurfForAnalytics, setSelectedTurfForAnalytics] = useState<Arena | null>(null);
   
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [managers, setManagers] = useState<TurfManager[]>([]);
   const [arenas, setArenas] = useState<Arena[]>([]);
+  const [allBookings, setAllBookings] = useState<Booking[]>([]);
+  const [reportStats, setReportStats] = useState<ReportStats | null>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedState, setSelectedState] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
+  const [selectedTurfFilter, setSelectedTurfFilter] = useState('all');
+  const [reportPeriod, setReportPeriod] = useState('month');
   
   const [selectedArena, setSelectedArena] = useState<Arena | null>(null);
   const [arenaBookings, setArenaBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
   
-  // Calendar state for bookings by day
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarWeekStart, setCalendarWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
@@ -100,7 +119,7 @@ export default function AdminDashboard() {
     if (isAdmin) {
       fetchData();
     }
-  }, [isAdmin, activeTab]);
+  }, [isAdmin, activeTab, selectedTurfFilter, reportPeriod]);
 
   useEffect(() => {
     if (selectedState === 'all') {
@@ -137,22 +156,35 @@ export default function AdminDashboard() {
         .order('created_at', { ascending: false });
       setUsers((data || []) as PublicUser[]);
     } else if (activeTab === 'managers') {
-      // Fetch turfs grouped by user_id
+      // Fetch turfs with revenue
       const { data: turfsData } = await supabase
         .from('turfs')
         .select('user_id');
       
-      const managerCounts: Record<string, number> = {};
+      const { data: bookingsData } = await supabase
+        .from('bookings')
+        .select('turf_id, total_amount, turfs!inner(user_id)')
+        .eq('status', 'booked');
+      
+      const managerStats: Record<string, { count: number; revenue: number }> = {};
       (turfsData || []).forEach((t: any) => {
-        managerCounts[t.user_id] = (managerCounts[t.user_id] || 0) + 1;
+        if (!managerStats[t.user_id]) managerStats[t.user_id] = { count: 0, revenue: 0 };
+        managerStats[t.user_id].count += 1;
       });
       
-      // Get unique user_ids with their turf counts
-      const uniqueManagers = Object.entries(managerCounts).map(([id, count]) => ({
+      (bookingsData || []).forEach((b: any) => {
+        const userId = b.turfs?.user_id;
+        if (userId && managerStats[userId]) {
+          managerStats[userId].revenue += b.total_amount || 0;
+        }
+      });
+      
+      const uniqueManagers = Object.entries(managerStats).map(([id, stats]) => ({
         id,
         email: `Manager ${id.slice(0, 8)}`,
         created_at: new Date().toISOString(),
-        turfs_count: count
+        turfs_count: stats.count,
+        total_revenue: stats.revenue,
       }));
       
       setManagers(uniqueManagers);
@@ -162,9 +194,84 @@ export default function AdminDashboard() {
         .select('*')
         .order('created_at', { ascending: false });
       setArenas(data || []);
+    } else if (activeTab === 'bookings') {
+      let query = supabase
+        .from('bookings')
+        .select(`
+          id,
+          booking_date,
+          start_time,
+          end_time,
+          total_amount,
+          paid_amount,
+          pending_amount,
+          status,
+          payment_method,
+          customer:customers(name, phone),
+          turf:turfs(name, sport_type)
+        `)
+        .order('booking_date', { ascending: false })
+        .order('start_time', { ascending: false })
+        .limit(100);
+      
+      if (selectedTurfFilter !== 'all') {
+        query = query.eq('turf_id', selectedTurfFilter);
+      }
+      
+      const { data } = await query;
+      setAllBookings((data || []).map((b: any) => ({
+        ...b,
+        customer: b.customer || null,
+        turf: b.turf || null,
+      })));
+    } else if (activeTab === 'reports') {
+      await fetchReports();
     }
     
     setLoading(false);
+  };
+
+  const fetchReports = async () => {
+    let startDate: Date;
+    const endDate = new Date();
+    
+    switch (reportPeriod) {
+      case 'week':
+        startDate = addDays(endDate, -7);
+        break;
+      case 'month':
+        startDate = startOfMonth(endDate);
+        break;
+      case 'quarter':
+        startDate = subMonths(endDate, 3);
+        break;
+      default:
+        startDate = startOfMonth(endDate);
+    }
+    
+    let query = supabase
+      .from('bookings')
+      .select('total_amount, paid_amount, pending_amount, payment_method, status')
+      .gte('booking_date', format(startDate, 'yyyy-MM-dd'))
+      .lte('booking_date', format(endDate, 'yyyy-MM-dd'));
+    
+    if (selectedTurfFilter !== 'all') {
+      query = query.eq('turf_id', selectedTurfFilter);
+    }
+    
+    const { data } = await query;
+    
+    const stats: ReportStats = {
+      totalBookings: (data || []).filter(b => b.status === 'booked').length,
+      totalRevenue: (data || []).filter(b => b.status === 'booked').reduce((sum, b) => sum + (b.paid_amount || 0), 0),
+      totalPending: (data || []).filter(b => b.status === 'booked').reduce((sum, b) => sum + (b.pending_amount || 0), 0),
+      cashRevenue: (data || []).filter(b => b.payment_method === 'cash' && b.status === 'booked').reduce((sum, b) => sum + (b.paid_amount || 0), 0),
+      onlineRevenue: (data || []).filter(b => b.payment_method !== 'cash' && b.status === 'booked').reduce((sum, b) => sum + (b.paid_amount || 0), 0),
+      avgBookingValue: 0,
+    };
+    stats.avgBookingValue = stats.totalBookings > 0 ? Math.round(stats.totalRevenue / stats.totalBookings) : 0;
+    
+    setReportStats(stats);
   };
 
   const fetchArenaBookings = async (arenaId: string, date?: Date) => {
@@ -178,7 +285,10 @@ export default function AdminDashboard() {
         start_time,
         end_time,
         total_amount,
+        paid_amount,
+        pending_amount,
         status,
+        payment_method,
         customer:customers(name, phone)
       `)
       .eq('turf_id', arenaId)
@@ -195,7 +305,7 @@ export default function AdminDashboard() {
     
     setArenaBookings((data || []).map((b: any) => ({
       ...b,
-      customer: b.customer || null
+      customer: b.customer || null,
     })));
     setLoadingBookings(false);
   };
@@ -247,7 +357,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex flex-col">
+      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex flex-col z-50">
         <div className="h-16 flex items-center px-4 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
@@ -257,7 +367,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           <button
             onClick={() => setActiveTab('users')}
             className={cn(
@@ -287,6 +397,26 @@ export default function AdminDashboard() {
           >
             <MapPin className="w-5 h-5" />
             <span>Sports Arenas</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('bookings')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+              activeTab === 'bookings' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            <Calendar className="w-5 h-5" />
+            <span>All Bookings</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+              activeTab === 'reports' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span>Reports</span>
           </button>
           <button
             onClick={() => setActiveTab('engines')}
@@ -320,18 +450,22 @@ export default function AdminDashboard() {
                 {activeTab === 'users' && 'Public Users'}
                 {activeTab === 'managers' && 'Turf Managers'}
                 {activeTab === 'arenas' && 'Sports Arenas'}
+                {activeTab === 'bookings' && 'All Bookings'}
+                {activeTab === 'reports' && 'Reports & Analytics'}
                 {activeTab === 'engines' && 'Psychological Engines'}
               </h1>
               <p className="text-muted-foreground">
                 {activeTab === 'users' && `${filteredUsers.length} registered users`}
                 {activeTab === 'managers' && `${managers.length} turf managers`}
                 {activeTab === 'arenas' && `${filteredArenas.length} sports arenas`}
+                {activeTab === 'bookings' && `${allBookings.length} recent bookings`}
+                {activeTab === 'reports' && 'Financial and booking reports'}
                 {activeTab === 'engines' && 'Configure behavioral optimization engines'}
               </p>
             </div>
           </div>
 
-          {/* Filters */}
+          {/* Filters for Arenas */}
           {activeTab === 'arenas' && (
             <div className="flex flex-wrap gap-3 mb-6">
               <Select value={selectedState} onValueChange={setSelectedState}>
@@ -366,6 +500,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* Filters for Users */}
           {activeTab === 'users' && (
             <div className="mb-6 max-w-xs">
               <div className="relative">
@@ -380,77 +515,111 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Content */}
+          {/* Filters for Bookings & Reports */}
+          {(activeTab === 'bookings' || activeTab === 'reports') && (
+            <div className="flex flex-wrap gap-3 mb-6">
+              <Select value={selectedTurfFilter} onValueChange={setSelectedTurfFilter}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="All Turfs" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Turfs</SelectItem>
+                  {arenas.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              
+              {activeTab === 'reports' && (
+                <Select value={reportPeriod} onValueChange={setReportPeriod}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">Last 7 Days</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="quarter">Last 3 Months</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
+
+          {/* Users Tab */}
           {activeTab === 'users' && (
             <div className="bg-card rounded-lg border border-border overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Name</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Phone</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Bookings</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Total Spent</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Points</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Joined</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Bookings</TableHead>
+                    <TableHead>Total Spent</TableHead>
+                    <TableHead>Points</TableHead>
+                    <TableHead>Joined</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filteredUsers.map((u) => (
-                    <tr key={u.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedUser(u)}>
-                      <td className="px-4 py-3 font-medium">{u.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{u.phone}</td>
-                      <td className="px-4 py-3">
+                    <TableRow key={u.id} className="cursor-pointer" onClick={() => setSelectedUser(u)}>
+                      <TableCell className="font-medium">{u.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{u.phone}</TableCell>
+                      <TableCell className="text-muted-foreground">{u.email || '-'}</TableCell>
+                      <TableCell>
                         <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">
                           {u.total_bookings || 0}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">₹{u.total_spent || 0}</td>
-                      <td className="px-4 py-3">
-                        <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-sm">
+                      </TableCell>
+                      <TableCell className="font-medium">₹{u.total_spent || 0}</TableCell>
+                      <TableCell>
+                        <span className="bg-warning/10 text-warning px-2 py-1 rounded text-sm">
                           {u.loyalty_points || 0}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {format(parseISO(u.created_at), 'MMM d, yyyy')}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
               {filteredUsers.length === 0 && (
                 <div className="p-8 text-center text-muted-foreground">No users found</div>
               )}
             </div>
           )}
 
+          {/* Managers Tab */}
           {activeTab === 'managers' && (
             <div className="bg-card rounded-lg border border-border overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Manager ID</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Turfs</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Manager ID</TableHead>
+                    <TableHead>Turfs</TableHead>
+                    <TableHead>Total Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {managers.map((m) => (
-                    <tr key={m.id} className="border-t border-border hover:bg-muted/30">
-                      <td className="px-4 py-3 font-mono text-sm">{m.id}</td>
-                      <td className="px-4 py-3">
+                    <TableRow key={m.id}>
+                      <TableCell className="font-mono text-sm">{m.id}</TableCell>
+                      <TableCell>
                         <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm font-medium">
                           {m.turfs_count} turf{m.turfs_count !== 1 ? 's' : ''}
                         </span>
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="font-medium text-success">₹{m.total_revenue.toLocaleString()}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
               {managers.length === 0 && (
                 <div className="p-8 text-center text-muted-foreground">No managers found</div>
               )}
             </div>
           )}
 
+          {/* Arenas Tab */}
           {activeTab === 'arenas' && (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredArenas.map((arena) => (
@@ -462,26 +631,26 @@ export default function AdminDashboard() {
                     onClick={() => handleArenaClick(arena)}
                     className="cursor-pointer"
                   >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="font-semibold">{arena.name}</h3>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                        <MapPin className="w-3 h-3" />
-                        {arena.location || 'No location'}
-                      </p>
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold">{arena.name}</h3>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                          <MapPin className="w-3 h-3" />
+                          {arena.location || 'No location'}
+                        </p>
+                      </div>
+                      <span className={cn(
+                        "text-xs px-2 py-1 rounded-full",
+                        arena.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                      )}>
+                        {arena.is_active ? 'Active' : 'Inactive'}
+                      </span>
                     </div>
-                    <span className={cn(
-                      "text-xs px-2 py-1 rounded-full",
-                      arena.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                    )}>
-                      {arena.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{arena.sport_type}</span>
-                    <span className="font-medium">₹{arena.base_price}/hr</span>
-                  </div>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{arena.sport_type}</span>
+                      <span className="font-medium">₹{arena.base_price}/hr</span>
+                    </div>
                   </div>
                   
                   <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
@@ -491,7 +660,10 @@ export default function AdminDashboard() {
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => setSelectedTurfForAnalytics(arena)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTurfForAnalytics(arena);
+                      }}
                     >
                       View Analytics
                     </Button>
@@ -504,6 +676,150 @@ export default function AdminDashboard() {
                   No arenas found matching your filters
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Bookings Tab */}
+          {activeTab === 'bookings' && (
+            <div className="bg-card rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Turf</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Paid</TableHead>
+                    <TableHead>Pending</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allBookings.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-medium">
+                        {format(parseISO(b.booking_date), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {b.start_time.slice(0, 5)} - {b.end_time.slice(0, 5)}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{b.turf?.name || '-'}</p>
+                          <p className="text-xs text-muted-foreground">{b.turf?.sport_type}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {b.customer ? (
+                          <div>
+                            <p className="font-medium">{b.customer.name}</p>
+                            <p className="text-xs text-muted-foreground">{b.customer.phone}</p>
+                          </div>
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell className="font-medium">₹{b.total_amount}</TableCell>
+                      <TableCell className="text-success">₹{b.paid_amount || 0}</TableCell>
+                      <TableCell className={b.pending_amount > 0 ? "text-destructive" : ""}>
+                        ₹{b.pending_amount || 0}
+                      </TableCell>
+                      <TableCell>
+                        <span className={cn(
+                          "text-xs px-2 py-1 rounded-full",
+                          b.status === 'booked' ? "bg-success/10 text-success" :
+                          b.status === 'cancelled' ? "bg-destructive/10 text-destructive" :
+                          "bg-muted text-muted-foreground"
+                        )}>
+                          {b.status}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {allBookings.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground">No bookings found</div>
+              )}
+            </div>
+          )}
+
+          {/* Reports Tab */}
+          {activeTab === 'reports' && reportStats && (
+            <div className="space-y-6">
+              {/* Stats Cards */}
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Total Bookings</p>
+                  </div>
+                  <p className="text-3xl font-bold">{reportStats.totalBookings}</p>
+                </div>
+                
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-success" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  </div>
+                  <p className="text-3xl font-bold text-success">₹{reportStats.totalRevenue.toLocaleString()}</p>
+                </div>
+                
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-warning" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Pending Amount</p>
+                  </div>
+                  <p className="text-3xl font-bold text-warning">₹{reportStats.totalPending.toLocaleString()}</p>
+                </div>
+                
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-accent-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Avg. Booking Value</p>
+                  </div>
+                  <p className="text-3xl font-bold">₹{reportStats.avgBookingValue}</p>
+                </div>
+              </div>
+
+              {/* Payment Breakdown */}
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="font-semibold mb-4">Payment Breakdown</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-success" />
+                      </div>
+                      <span className="font-medium">Cash Payments</span>
+                    </div>
+                    <span className="text-xl font-bold text-success">₹{reportStats.cashRevenue.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-primary" />
+                      </div>
+                      <span className="font-medium">Online Payments</span>
+                    </div>
+                    <span className="text-xl font-bold text-primary">₹{reportStats.onlineRevenue.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Engines Tab */}
+          {activeTab === 'engines' && (
+            <div className="max-w-3xl">
+              <EnginesPanel />
             </div>
           )}
         </div>
@@ -593,13 +909,16 @@ export default function AdminDashboard() {
                       <div className="text-right">
                         <span className={cn(
                           "text-xs px-2 py-1 rounded-full",
-                          booking.status === 'booked' ? "bg-green-100 text-green-700" :
-                          booking.status === 'cancelled' ? "bg-red-100 text-red-700" :
-                          "bg-gray-100 text-gray-600"
+                          booking.status === 'booked' ? "bg-success/10 text-success" :
+                          booking.status === 'cancelled' ? "bg-destructive/10 text-destructive" :
+                          "bg-muted text-muted-foreground"
                         )}>
                           {booking.status}
                         </span>
                         <p className="font-medium mt-2">₹{booking.total_amount}</p>
+                        {booking.pending_amount > 0 && (
+                          <p className="text-xs text-destructive">Pending: ₹{booking.pending_amount}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -609,11 +928,6 @@ export default function AdminDashboard() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Engines Tab Content */}
-      {activeTab === 'engines' && (
-        <EnginesPanel />
-      )}
 
       {/* User Detail Dialog */}
       <UserDetailDialog 

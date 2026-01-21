@@ -908,6 +908,92 @@ export type Database = {
           },
         ]
       }
+      turf_engines: {
+        Row: {
+          created_at: string
+          fomo_enabled: boolean | null
+          fomo_show_live_viewers: boolean | null
+          fomo_show_recent_bookings: boolean | null
+          id: string
+          loyalty_enabled: boolean | null
+          loyalty_milestone_rewards: boolean | null
+          loyalty_points_per_100: number | null
+          loyalty_show_progress: boolean | null
+          scarcity_enabled: boolean | null
+          scarcity_message: string | null
+          scarcity_threshold: number | null
+          social_proof_enabled: boolean | null
+          social_proof_message: string | null
+          social_proof_time_window: string | null
+          turf_id: string
+          updated_at: string
+          urgency_countdown_enabled: boolean | null
+          urgency_decay_percentage: number | null
+          urgency_enabled: boolean | null
+          urgency_flash_offers_enabled: boolean | null
+          urgency_time_decay_enabled: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fomo_enabled?: boolean | null
+          fomo_show_live_viewers?: boolean | null
+          fomo_show_recent_bookings?: boolean | null
+          id?: string
+          loyalty_enabled?: boolean | null
+          loyalty_milestone_rewards?: boolean | null
+          loyalty_points_per_100?: number | null
+          loyalty_show_progress?: boolean | null
+          scarcity_enabled?: boolean | null
+          scarcity_message?: string | null
+          scarcity_threshold?: number | null
+          social_proof_enabled?: boolean | null
+          social_proof_message?: string | null
+          social_proof_time_window?: string | null
+          turf_id: string
+          updated_at?: string
+          urgency_countdown_enabled?: boolean | null
+          urgency_decay_percentage?: number | null
+          urgency_enabled?: boolean | null
+          urgency_flash_offers_enabled?: boolean | null
+          urgency_time_decay_enabled?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fomo_enabled?: boolean | null
+          fomo_show_live_viewers?: boolean | null
+          fomo_show_recent_bookings?: boolean | null
+          id?: string
+          loyalty_enabled?: boolean | null
+          loyalty_milestone_rewards?: boolean | null
+          loyalty_points_per_100?: number | null
+          loyalty_show_progress?: boolean | null
+          scarcity_enabled?: boolean | null
+          scarcity_message?: string | null
+          scarcity_threshold?: number | null
+          social_proof_enabled?: boolean | null
+          social_proof_message?: string | null
+          social_proof_time_window?: string | null
+          turf_id?: string
+          updated_at?: string
+          urgency_countdown_enabled?: boolean | null
+          urgency_decay_percentage?: number | null
+          urgency_enabled?: boolean | null
+          urgency_flash_offers_enabled?: boolean | null
+          urgency_time_decay_enabled?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turf_engines_turf_id_fkey"
+            columns: ["turf_id"]
+            isOneToOne: true
+            referencedRelation: "turfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       turf_reviews: {
         Row: {
           booking_id: string | null
