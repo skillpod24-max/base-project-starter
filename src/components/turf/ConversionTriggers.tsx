@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Users, Zap, Trophy, Eye, AlertTriangle, Flame, TrendingUp } from 'lucide-react';
+import { Clock, Users, Zap, Flame, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { format, startOfWeek, startOfMonth } from 'date-fns';
@@ -36,14 +36,11 @@ export function ConversionTriggers({
   const [engine, setEngine] = useState<TurfEngine | null>(null);
   const [availableSlots, setAvailableSlots] = useState(0);
   const [recentBookings, setRecentBookings] = useState(0);
-  const [liveViewers, setLiveViewers] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchEngineSettings();
     fetchAvailableSlots();
-    fetchBookingStats();
-    simulateLiveViewers();
   }, [turfId, selectedDate]);
 
   const fetchEngineSettings = async () => {
@@ -67,7 +64,7 @@ export function ConversionTriggers({
         urgency_enabled: true,
         urgency_countdown_enabled: true,
         fomo_enabled: true,
-        fomo_show_live_viewers: true,
+        fomo_show_live_viewers: false,
         fomo_show_recent_bookings: true,
       });
     }
@@ -142,22 +139,6 @@ export function ConversionTriggers({
     setRecentBookings(count || 0);
   };
 
-  const simulateLiveViewers = () => {
-    // Simulate live viewers (3-12 viewers with slight variations)
-    const baseViewers = Math.floor(Math.random() * 10) + 3;
-    setLiveViewers(baseViewers);
-    
-    // Update periodically
-    const interval = setInterval(() => {
-      setLiveViewers(prev => {
-        const change = Math.floor(Math.random() * 3) - 1;
-        return Math.max(2, Math.min(15, prev + change));
-      });
-    }, 8000);
-
-    return () => clearInterval(interval);
-  };
-
   useEffect(() => {
     if (engine) fetchBookingStats();
   }, [engine]);
@@ -166,19 +147,17 @@ export function ConversionTriggers({
 
   const showScarcity = engine.scarcity_enabled && availableSlots > 0 && availableSlots <= engine.scarcity_threshold;
   const showSocialProof = engine.social_proof_enabled && recentBookings > 0;
-  const showFomoViewers = engine.fomo_enabled && engine.fomo_show_live_viewers;
-  const showFomoBookings = engine.fomo_enabled && engine.fomo_show_recent_bookings && recentBookings > 0;
   const showUrgency = engine.urgency_enabled && engine.urgency_countdown_enabled && availableSlots <= 5;
 
-  const anyTriggerActive = showScarcity || showSocialProof || showFomoViewers || showFomoBookings || showUrgency;
+  const anyTriggerActive = showScarcity || showSocialProof || showUrgency;
 
   if (!anyTriggerActive) return null;
 
   return (
     <div className="space-y-2">
-      {/* Scarcity Alert - Swiggy-like "Last few items" */}
+      {/* Scarcity Alert */}
       {showScarcity && (
-        <div className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl px-3 py-2.5 animate-pulse">
+        <div className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl px-3 py-2.5">
           <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
             <Flame className="w-4 h-4 text-white" />
           </div>
@@ -188,19 +167,6 @@ export function ConversionTriggers({
             </p>
             <p className="text-xs text-red-600">Book now before it's gone!</p>
           </div>
-        </div>
-      )}
-
-      {/* FOMO - Live Viewers (Swiggy "X people viewing") */}
-      {showFomoViewers && (
-        <div className="flex items-center gap-2 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl px-3 py-2">
-          <div className="relative">
-            <Eye className="w-5 h-5 text-purple-600" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          </div>
-          <span className="text-sm font-medium text-purple-700">
-            <span className="font-bold">{liveViewers}</span> people viewing right now
-          </span>
         </div>
       )}
 
