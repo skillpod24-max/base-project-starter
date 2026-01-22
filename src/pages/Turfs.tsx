@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, Power, Upload, X, MapPin, Eye, EyeOff, Phone, MessageCircle, ExternalLink } from 'lucide-react';
+import { Plus, Edit, Trash2, Power, Upload, X, MapPin, Eye, EyeOff, Phone, MessageCircle, ExternalLink, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,11 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getAllStates, getCitiesByState } from '@/data/indianStates';
-
+import { TurfEnginesPanel } from '@/components/turf/TurfEnginesPanel';
 interface Turf {
   id: string;
   name: string;
@@ -522,89 +523,137 @@ export default function Turfs() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {turfs.map((turf) => (
-            <div key={turf.id} className={`bg-card border rounded-lg overflow-hidden ${!turf.is_active ? 'opacity-60' : ''}`}>
-              {/* Image */}
-              <div className="aspect-video bg-muted relative">
-                {turf.images && turf.images.length > 0 ? (
-                  <img src={turf.images[0]} alt={turf.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                    <span className="text-4xl">⚽</span>
-                  </div>
-                )}
-                <div className="absolute top-2 left-2 flex gap-1">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${turf.is_active ? 'bg-success text-white' : 'bg-muted-foreground text-white'}`}>
-                    {turf.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                  {turf.is_public && (
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary text-white">Public</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="font-medium">{turf.name}</h3>
-                    <p className="text-sm text-muted-foreground">{turf.sport_type}</p>
-                  </div>
-                </div>
-
-                {turf.location && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                    <MapPin className="w-3 h-3" />
-                    <span className="truncate">{turf.location}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Base</span>
-                    <span className="font-medium">₹{turf.base_price}/hr</span>
-                  </div>
-                  {turf.price_1h && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">1hr</span>
-                      <span className="font-medium">₹{turf.price_1h}</span>
-                    </div>
-                  )}
-                  {turf.weekday_price && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Weekday</span>
-                      <span className="font-medium">₹{turf.weekday_price}</span>
-                    </div>
-                  )}
-                  {turf.weekend_price && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Weekend</span>
-                      <span className="font-medium">₹{turf.weekend_price}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="text-xs text-muted-foreground mb-3">
-                  {formatTimeWithAmPm(turf.operating_hours_start)} - {formatTimeWithAmPm(turf.operating_hours_end)} • {turf.slot_duration} min slots
-                </div>
-
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(turf)} className="flex-1">
-                    <Edit className="w-4 h-4 mr-1" /> Edit
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => togglePublic(turf)} title={turf.is_public ? 'Make Private' : 'Make Public'}>
-                    {turf.is_public ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => toggleActive(turf)}>
-                    <Power className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDelete(turf.id)} className="text-destructive hover:text-destructive">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <TurfCard 
+              key={turf.id} 
+              turf={turf} 
+              user={user}
+              formatTimeWithAmPm={formatTimeWithAmPm}
+              handleEdit={handleEdit}
+              togglePublic={togglePublic}
+              toggleActive={toggleActive}
+              handleDelete={handleDelete}
+            />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Separate TurfCard component with collapsible engines panel
+interface TurfCardProps {
+  turf: Turf;
+  user: any;
+  formatTimeWithAmPm: (time: string) => string;
+  handleEdit: (turf: Turf) => void;
+  togglePublic: (turf: Turf) => void;
+  toggleActive: (turf: Turf) => void;
+  handleDelete: (id: string) => void;
+}
+
+function TurfCard({ turf, user, formatTimeWithAmPm, handleEdit, togglePublic, toggleActive, handleDelete }: TurfCardProps) {
+  const [enginesOpen, setEnginesOpen] = useState(false);
+
+  return (
+    <div className={`bg-card border rounded-lg overflow-hidden ${!turf.is_active ? 'opacity-60' : ''}`}>
+      {/* Image */}
+      <div className="aspect-video bg-muted relative">
+        {turf.images && turf.images.length > 0 ? (
+          <img src={turf.images[0]} alt={turf.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+            <span className="text-4xl">⚽</span>
+          </div>
+        )}
+        <div className="absolute top-2 left-2 flex gap-1">
+          <span className={`px-2 py-0.5 rounded text-xs font-medium ${turf.is_active ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}`}>
+            {turf.is_active ? 'Active' : 'Inactive'}
+          </span>
+          {turf.is_public && (
+            <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary text-primary-foreground">Public</span>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h3 className="font-medium">{turf.name}</h3>
+            <p className="text-sm text-muted-foreground">{turf.sport_type}</p>
+          </div>
+        </div>
+
+        {turf.location && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+            <MapPin className="w-3 h-3" />
+            <span className="truncate">{turf.location}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Base</span>
+            <span className="font-medium">₹{turf.base_price}/hr</span>
+          </div>
+          {turf.price_1h && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">1hr</span>
+              <span className="font-medium">₹{turf.price_1h}</span>
+            </div>
+          )}
+          {turf.weekday_price && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Weekday</span>
+              <span className="font-medium">₹{turf.weekday_price}</span>
+            </div>
+          )}
+          {turf.weekend_price && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Weekend</span>
+              <span className="font-medium">₹{turf.weekend_price}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="text-xs text-muted-foreground mb-3">
+          {formatTimeWithAmPm(turf.operating_hours_start)} - {formatTimeWithAmPm(turf.operating_hours_end)} • {turf.slot_duration} min slots
+        </div>
+
+        <div className="flex gap-2 mb-3">
+          <Button variant="outline" size="sm" onClick={() => handleEdit(turf)} className="flex-1">
+            <Edit className="w-4 h-4 mr-1" /> Edit
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => togglePublic(turf)} title={turf.is_public ? 'Make Private' : 'Make Public'}>
+            {turf.is_public ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => toggleActive(turf)}>
+            <Power className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleDelete(turf.id)} className="text-destructive hover:text-destructive">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Collapsible Conversion Engines Panel */}
+        <Collapsible open={enginesOpen} onOpenChange={setEnginesOpen}>
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-between text-muted-foreground hover:text-foreground"
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                <span>Conversion Engines</span>
+              </div>
+              {enginesOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3 pt-3 border-t border-border">
+            <TurfEnginesPanel turfId={turf.id} userId={user?.id || ''} />
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
     </div>
   );
 }
