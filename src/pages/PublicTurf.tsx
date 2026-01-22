@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Clock, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Phone, Loader2, Check, Sparkles, Timer, AlertCircle, Award, Tag, ExternalLink, MessageCircle, Percent, LogIn, Star, Wifi, Car, Droplets, ShowerHead, Coffee, Dumbbell, Shield, Sun, Wind, TrendingDown, Gift, Trophy } from 'lucide-react';
+import { MapPin, Clock, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Phone, Loader2, Check, Sparkles, Timer, AlertCircle, Award, Tag, ExternalLink, MessageCircle, Percent, LogIn, Star, Wifi, Car, Droplets, ShowerHead, Coffee, Dumbbell, Shield, Sun, Wind, TrendingDown, Gift, Trophy, Share2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,7 @@ import { FirstBookingOfferBanner } from '@/components/FirstBookingOfferBanner';
 import { ProgressiveHourUpsell } from '@/components/ProgressiveHourUpsell';
 import { LoyaltyProgressBar } from '@/components/LoyaltyProgressBar';
 import { OfferMiniBar } from '@/components/turf/OfferMiniBar';
+import { ConversionTriggers } from '@/components/turf/ConversionTriggers';
 
 interface Turf {
   id: string;
@@ -1018,22 +1019,41 @@ export default function PublicTurf() {
   const applicableOffer = getApplicableOffer();
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 py-4 sticky top-0 z-40">
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile-First Sticky Header - Swiggy Style */}
+      <header className="bg-white border-b border-gray-100 py-3 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to Turfs
+          <Link to="/" className="inline-flex items-center gap-2 text-gray-700 hover:text-primary transition-colors font-medium">
+            <ArrowLeft className="w-5 h-5" />
+            <span className="hidden sm:inline">Back</span>
           </Link>
-          <ProfileAvatar />
+          <div className="flex-1 text-center px-4">
+            <h1 className="text-sm font-semibold text-gray-900 truncate sm:text-base">{turf.name}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200">
+              <Share2 className="w-4 h-4" />
+            </button>
+            <ProfileAvatar />
+          </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Turf Details */}
-          <div className="lg:col-span-2 space-y-6 order-1">
-            {/* Offer Mini Bar - Sticky at top */}
+      <div className="container mx-auto px-4 py-4 sm:py-6">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 lg:gap-8">
+          {/* Main Content Column */}
+          <div className="lg:col-span-2 space-y-4 order-1">
+            
+            {/* Conversion Triggers - Swiggy Style Alerts */}
+            <ConversionTriggers
+              turfId={turf.id}
+              turfOwnerId={turf.user_id}
+              selectedDate={selectedSlot?.date || new Date()}
+              operatingStart={turf.operating_hours_start}
+              operatingEnd={turf.operating_hours_end}
+            />
+
+            {/* Offer Mini Bar - Compact for Mobile */}
             <OfferMiniBar
               offers={offers}
               firstBookingOffers={firstBookingOffers}
@@ -1044,167 +1064,147 @@ export default function PublicTurf() {
               }}
             />
 
-            {/* Image Gallery */}
-            <div className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 shadow-lg">
+            {/* Image Gallery - Mobile Optimized */}
+            <div className="relative aspect-[4/3] sm:aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 shadow-lg">
               {turf.images && turf.images.length > 0 ? (
                 <>
                   <img 
                     src={turf.images[currentImageIndex]} 
                     alt={turf.name}
                     className="w-full h-full object-cover"
-                    style={{ imageRendering: 'crisp-edges' }}
                     loading="eager"
                   />
                   {turf.images.length > 1 && (
                     <>
                       <button 
                         onClick={() => setCurrentImageIndex(i => i > 0 ? i - 1 : turf.images!.length - 1)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center text-gray-700 hover:bg-white shadow-lg"
+                        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 flex items-center justify-center text-gray-700 hover:bg-white shadow-lg"
                       >
-                        <ChevronLeft className="w-6 h-6" />
+                        <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                       </button>
                       <button 
                         onClick={() => setCurrentImageIndex(i => i < turf.images!.length - 1 ? i + 1 : 0)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center text-gray-700 hover:bg-white shadow-lg"
+                        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 flex items-center justify-center text-gray-700 hover:bg-white shadow-lg"
                       >
-                        <ChevronRight className="w-6 h-6" />
+                        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                       </button>
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                         {turf.images.map((_, i) => (
                           <button 
                             key={i} 
                             onClick={() => setCurrentImageIndex(i)}
-                            className={cn("w-2 h-2 rounded-full transition-all", i === currentImageIndex ? "bg-white w-4" : "bg-white/50")}
+                            className={cn("w-2 h-2 rounded-full transition-all", i === currentImageIndex ? "bg-white w-5" : "bg-white/50")}
                           />
                         ))}
                       </div>
                     </>
                   )}
+                  {/* Rating Badge - Swiggy Style */}
+                  {turf.avg_rating && turf.avg_rating > 0 && (
+                    <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 shadow-lg">
+                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                      <span className="font-bold text-gray-900">{turf.avg_rating.toFixed(1)}</span>
+                      <span className="text-gray-500 text-xs">({turf.review_count})</span>
+                    </div>
+                  )}
                 </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-200">
-                  <svg className="w-24 h-24 text-emerald-300" viewBox="0 0 24 24" fill="currentColor">
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/10">
+                  <svg className="w-20 h-20 sm:w-24 sm:h-24 text-primary/30" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
                   </svg>
                 </div>
               )}
             </div>
 
-            {/* Info Card */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{turf.name}</h1>
-                  <div className="flex items-center gap-3">
-                    <span className="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">
-                      {turf.sport_type}
-                    </span>
-                    {turf.avg_rating && turf.avg_rating > 0 && (
-                      <div className="flex items-center gap-1 text-amber-500">
-                        <Star className="w-4 h-4 fill-current" />
-                        <span className="font-medium">{turf.avg_rating.toFixed(1)}</span>
-                        <span className="text-gray-400 text-sm">({turf.review_count} reviews)</span>
-                      </div>
-                    )}
+            {/* Turf Info Card - Swiggy Style Compact */}
+            <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+              {/* Header Section */}
+              <div className="p-4 sm:p-6 border-b border-gray-100">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex-1">
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{turf.name}</h1>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <span className="inline-block bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                        {turf.sport_type}
+                      </span>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-sm text-gray-600">₹{turf.base_price}/hr</span>
+                    </div>
                   </div>
+                </div>
+                
+                {/* Quick Info - Horizontal Scroll on Mobile */}
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap scrollbar-hide">
+                  <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2 flex-shrink-0">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-gray-700 whitespace-nowrap">{turf.operating_hours_start.slice(0, 5)} - {turf.operating_hours_end.slice(0, 5)}</span>
+                  </div>
+                  {turf.location && (
+                    <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2 flex-shrink-0">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <span className="text-sm text-gray-700 truncate max-w-[150px]">{turf.location}</span>
+                    </div>
+                  )}
+                  {turf.phone_number && (
+                    <a href={`tel:${turf.phone_number}`} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2 flex-shrink-0 hover:bg-primary/5">
+                      <Phone className="w-4 h-4 text-primary" />
+                      <span className="text-sm text-gray-700">{turf.phone_number}</span>
+                    </a>
+                  )}
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                {turf.location && (
-                  <div className="flex items-start gap-2 text-gray-600">
-                    <MapPin className="w-5 h-5 flex-shrink-0 text-emerald-500 mt-0.5" />
-                    <span>{turf.location}</span>
+              {/* Pricing Cards - Mobile Swipe */}
+              <div className="p-4 sm:p-6 border-b border-gray-100">
+                <h3 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">Pricing</h3>
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4 scrollbar-hide">
+                  <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-3 text-center min-w-[80px] flex-shrink-0">
+                    <p className="text-xs text-gray-500 mb-1">Base/hr</p>
+                    <p className="text-lg font-bold text-primary">₹{turf.base_price}</p>
                   </div>
-                )}
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Clock className="w-5 h-5 flex-shrink-0 text-emerald-500" />
-                  <span>{turf.operating_hours_start.slice(0, 5)} - {turf.operating_hours_end.slice(0, 5)}</span>
-                </div>
-                {turf.phone_number && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="w-5 h-5 flex-shrink-0 text-emerald-500" />
-                    <a href={`tel:${turf.phone_number}`} className="hover:text-emerald-600">{turf.phone_number}</a>
-                  </div>
-                )}
-                {turf.google_maps_url && (
-                  <a 
-                    href={turf.google_maps_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700"
-                  >
-                    <ExternalLink className="w-5 h-5 flex-shrink-0" />
-                    <span>View on Google Maps</span>
-                  </a>
-                )}
-                {turf.whatsapp_number && (
-                  <a 
-                    href={`https://wa.me/91${turf.whatsapp_number.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-green-600 hover:text-green-700"
-                  >
-                    <MessageCircle className="w-5 h-5 flex-shrink-0" />
-                    <span>Chat on WhatsApp</span>
-                  </a>
-                )}
-              </div>
-
-              {turf.description && (
-                <p className="text-gray-600">{turf.description}</p>
-              )}
-
-              {/* Pricing */}
-              <div className="mt-6 pt-6 border-t border-gray-100">
-                <h3 className="font-semibold text-gray-900 mb-3">Pricing</h3>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                   {turf.price_1h && (
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
-                      <p className="text-xs text-gray-500">1 Hour</p>
-                      <p className="text-lg font-bold text-emerald-600">₹{turf.price_1h}</p>
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center min-w-[80px] flex-shrink-0">
+                      <p className="text-xs text-gray-500 mb-1">1 Hour</p>
+                      <p className="text-lg font-bold text-gray-700">₹{turf.price_1h}</p>
                     </div>
                   )}
                   {turf.price_2h && (
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
-                      <p className="text-xs text-gray-500">2 Hours</p>
-                      <p className="text-lg font-bold text-emerald-600">₹{turf.price_2h}</p>
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center min-w-[80px] flex-shrink-0">
+                      <p className="text-xs text-gray-500 mb-1">2 Hours</p>
+                      <p className="text-lg font-bold text-gray-700">₹{turf.price_2h}</p>
                     </div>
                   )}
                   {turf.price_3h && (
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
-                      <p className="text-xs text-gray-500">3 Hours</p>
-                      <p className="text-lg font-bold text-emerald-600">₹{turf.price_3h}</p>
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center min-w-[80px] flex-shrink-0">
+                      <p className="text-xs text-gray-500 mb-1">3 Hours</p>
+                      <p className="text-lg font-bold text-gray-700">₹{turf.price_3h}</p>
                     </div>
                   )}
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center">
-                    <p className="text-xs text-gray-500">Base/hr</p>
-                    <p className="text-lg font-bold text-gray-700">₹{turf.base_price}</p>
-                  </div>
                 </div>
               </div>
 
-              {/* Amenities */}
+              {/* Amenities - Chip Style */}
               {turf.amenities && turf.amenities.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <h3 className="font-semibold text-gray-900 mb-3">Amenities</h3>
+                <div className="p-4 sm:p-6 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">Amenities</h3>
                   <div className="flex flex-wrap gap-2">
                     {turf.amenities.map((amenity) => {
                       const amenityIcons: Record<string, React.ReactNode> = {
-                        'WiFi': <Wifi className="w-4 h-4" />,
-                        'Parking': <Car className="w-4 h-4" />,
-                        'Drinking Water': <Droplets className="w-4 h-4" />,
-                        'Showers': <ShowerHead className="w-4 h-4" />,
-                        'Changing Room': <Shield className="w-4 h-4" />,
-                        'Cafeteria': <Coffee className="w-4 h-4" />,
-                        'First Aid': <Shield className="w-4 h-4" />,
-                        'Floodlights': <Sun className="w-4 h-4" />,
-                        'Air Conditioning': <Wind className="w-4 h-4" />,
-                        'Equipment Rental': <Dumbbell className="w-4 h-4" />,
+                        'WiFi': <Wifi className="w-3.5 h-3.5" />,
+                        'Parking': <Car className="w-3.5 h-3.5" />,
+                        'Drinking Water': <Droplets className="w-3.5 h-3.5" />,
+                        'Showers': <ShowerHead className="w-3.5 h-3.5" />,
+                        'Changing Room': <Shield className="w-3.5 h-3.5" />,
+                        'Cafeteria': <Coffee className="w-3.5 h-3.5" />,
+                        'First Aid': <Shield className="w-3.5 h-3.5" />,
+                        'Floodlights': <Sun className="w-3.5 h-3.5" />,
+                        'Air Conditioning': <Wind className="w-3.5 h-3.5" />,
+                        'Equipment Rental': <Dumbbell className="w-3.5 h-3.5" />,
                       };
                       return (
-                        <div key={amenity} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
-                          {amenityIcons[amenity] || <Check className="w-4 h-4" />}
+                        <div key={amenity} className="flex items-center gap-1.5 bg-gray-100 rounded-full px-3 py-1.5 text-xs font-medium text-gray-700">
+                          {amenityIcons[amenity] || <Check className="w-3.5 h-3.5" />}
                           <span>{amenity}</span>
                         </div>
                       );
@@ -1212,6 +1212,32 @@ export default function PublicTurf() {
                   </div>
                 </div>
               )}
+
+              {/* Quick Actions - Swiggy Style */}
+              <div className="p-4 sm:p-6 flex flex-wrap gap-2">
+                {turf.google_maps_url && (
+                  <a 
+                    href={turf.google_maps_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-blue-50 text-blue-700 rounded-full px-4 py-2 text-sm font-medium hover:bg-blue-100 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Directions
+                  </a>
+                )}
+                {turf.whatsapp_number && (
+                  <a 
+                    href={`https://wa.me/91${turf.whatsapp_number.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-green-50 text-green-700 rounded-full px-4 py-2 text-sm font-medium hover:bg-green-100 transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    WhatsApp
+                  </a>
+                )}
+              </div>
             </div>
 
             {/* Loyalty Progress Bar - Shows before slot selection (only for logged in users) */}
