@@ -19,6 +19,7 @@ import { ProgressiveHourUpsell } from '@/components/ProgressiveHourUpsell';
 import { LoyaltyProgressBar } from '@/components/LoyaltyProgressBar';
 import { OfferMiniBar } from '@/components/turf/OfferMiniBar';
 import { ConversionTriggers } from '@/components/turf/ConversionTriggers';
+import { ScratchCardOffer } from '@/components/turf/ScratchCardOffer';
 
 interface Turf {
   id: string;
@@ -153,6 +154,8 @@ export default function PublicTurf() {
   const [firstBookingOffers, setFirstBookingOffers] = useState<FirstBookingOffer[]>([]);
   const [loyaltyMilestoneOffers, setLoyaltyMilestoneOffers] = useState<LoyaltyMilestoneOffer[]>([]);
   const [customerBookingCount, setCustomerBookingCount] = useState(0);
+  const [showScratchCard, setShowScratchCard] = useState(false);
+  const [scratchCardDismissed, setScratchCardDismissed] = useState(false);
 
   const sessionId = getSessionId();
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -1018,8 +1021,38 @@ export default function PublicTurf() {
   const pricing = calculatePrice();
   const applicableOffer = getApplicableOffer();
 
+  // Get the best offer for scratch card (prioritize by discount value)
+  const scratchCardOffer = offers.length > 0 ? offers.reduce((best, current) => {
+    const bestValue = best.discount_type === 'percentage' ? best.discount_value : best.discount_value / 100;
+    const currentValue = current.discount_type === 'percentage' ? current.discount_value : current.discount_value / 100;
+    return currentValue > bestValue ? current : best;
+  }, offers[0]) : null;
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Scratch Card Offer Popup - Shows after 10 seconds */}
+      {scratchCardOffer && !scratchCardDismissed && (
+        <ScratchCardOffer
+          offer={{
+            id: scratchCardOffer.id,
+            name: scratchCardOffer.name,
+            offer_title: (scratchCardOffer as any).offer_title || null,
+            description: scratchCardOffer.description,
+            discount_type: scratchCardOffer.discount_type,
+            discount_value: scratchCardOffer.discount_value,
+          }}
+          delaySeconds={10}
+          onClose={() => setScratchCardDismissed(true)}
+          onReveal={() => {
+            // Track conversion
+            supabase
+              .from('offer_views')
+              .update({ converted: true })
+              .eq('offer_id', scratchCardOffer.id)
+              .eq('session_id', sessionId);
+          }}
+        />
+      )}
       {/* Mobile-First Sticky Header - Swiggy Style */}
       <header className="bg-white border-b border-gray-100 py-3 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 flex items-center justify-between">
@@ -1134,20 +1167,20 @@ export default function PublicTurf() {
                   </div>
                 </div>
                 
-                {/* Quick Info - Horizontal Scroll on Mobile */}
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap scrollbar-hide">
-                  <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2 flex-shrink-0">
+                {/* Quick Info - Stacked on Mobile */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+                  <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2">
                     <Clock className="w-4 h-4 text-primary" />
-                    <span className="text-sm text-gray-700 whitespace-nowrap">{turf.operating_hours_start.slice(0, 5)} - {turf.operating_hours_end.slice(0, 5)}</span>
+                    <span className="text-sm text-gray-700">{turf.operating_hours_start.slice(0, 5)} - {turf.operating_hours_end.slice(0, 5)}</span>
                   </div>
                   {turf.location && (
-                    <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2">
                       <MapPin className="w-4 h-4 text-primary" />
-                      <span className="text-sm text-gray-700 truncate max-w-[150px]">{turf.location}</span>
+                      <span className="text-sm text-gray-700">{turf.location}</span>
                     </div>
                   )}
                   {turf.phone_number && (
-                    <a href={`tel:${turf.phone_number}`} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2 flex-shrink-0 hover:bg-primary/5">
+                    <a href={`tel:${turf.phone_number}`} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2 hover:bg-primary/5">
                       <Phone className="w-4 h-4 text-primary" />
                       <span className="text-sm text-gray-700">{turf.phone_number}</span>
                     </a>
@@ -1155,28 +1188,28 @@ export default function PublicTurf() {
                 </div>
               </div>
 
-              {/* Pricing Cards - Mobile Swipe */}
+              {/* Pricing Cards - Grid Layout */}
               <div className="p-4 sm:p-6 border-b border-gray-100">
                 <h3 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">Pricing</h3>
-                <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4 scrollbar-hide">
-                  <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-3 text-center min-w-[80px] flex-shrink-0">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-3 text-center">
                     <p className="text-xs text-gray-500 mb-1">Base/hr</p>
                     <p className="text-lg font-bold text-primary">₹{turf.base_price}</p>
                   </div>
                   {turf.price_1h && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center min-w-[80px] flex-shrink-0">
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
                       <p className="text-xs text-gray-500 mb-1">1 Hour</p>
                       <p className="text-lg font-bold text-gray-700">₹{turf.price_1h}</p>
                     </div>
                   )}
                   {turf.price_2h && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center min-w-[80px] flex-shrink-0">
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
                       <p className="text-xs text-gray-500 mb-1">2 Hours</p>
                       <p className="text-lg font-bold text-gray-700">₹{turf.price_2h}</p>
                     </div>
                   )}
                   {turf.price_3h && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center min-w-[80px] flex-shrink-0">
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
                       <p className="text-xs text-gray-500 mb-1">3 Hours</p>
                       <p className="text-lg font-bold text-gray-700">₹{turf.price_3h}</p>
                     </div>
