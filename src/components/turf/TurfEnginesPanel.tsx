@@ -31,6 +31,8 @@ interface TurfEngine {
   fomo_enabled: boolean;
   fomo_show_live_viewers: boolean;
   fomo_show_recent_bookings: boolean;
+  scratch_card_enabled: boolean;
+  scratch_card_delay_seconds: number;
 }
 
 interface TurfEnginesPanelProps {
@@ -57,6 +59,8 @@ const defaultEngine: Omit<TurfEngine, 'turf_id' | 'user_id'> = {
   fomo_enabled: true,
   fomo_show_live_viewers: true,
   fomo_show_recent_bookings: true,
+  scratch_card_enabled: true,
+  scratch_card_delay_seconds: 10,
 };
 
 export function TurfEnginesPanel({ turfId, userId }: TurfEnginesPanelProps) {
@@ -387,6 +391,47 @@ export function TurfEnginesPanel({ turfId, userId }: TurfEnginesPanelProps) {
                 checked={engine.fomo_show_recent_bookings}
                 onCheckedChange={(v) => updateField('fomo_show_recent_bookings', v)}
               />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Scratch Card Engine */}
+      <div className={cn(
+        "bg-card border rounded-xl p-5 transition-all",
+        engine.scratch_card_enabled ? "border-primary/30" : "border-border opacity-70"
+      )}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-10 h-10 rounded-lg flex items-center justify-center",
+              engine.scratch_card_enabled ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"
+            )}>
+              <Percent className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Scratch Card Offers</h3>
+              <p className="text-sm text-muted-foreground">Gamified offer reveal to boost engagement</p>
+            </div>
+          </div>
+          <Switch
+            checked={engine.scratch_card_enabled}
+            onCheckedChange={(v) => updateField('scratch_card_enabled', v)}
+          />
+        </div>
+        
+        {engine.scratch_card_enabled && (
+          <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-border">
+            <div className="space-y-2">
+              <Label>Show After (seconds)</Label>
+              <Input
+                type="number"
+                value={engine.scratch_card_delay_seconds}
+                onChange={(e) => updateField('scratch_card_delay_seconds', parseInt(e.target.value) || 10)}
+                min={5}
+                max={60}
+              />
+              <p className="text-xs text-muted-foreground">Time before popup appears (5-60s)</p>
             </div>
           </div>
         )}

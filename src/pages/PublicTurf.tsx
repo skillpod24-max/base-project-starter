@@ -156,6 +156,8 @@ export default function PublicTurf() {
   const [customerBookingCount, setCustomerBookingCount] = useState(0);
   const [showScratchCard, setShowScratchCard] = useState(false);
   const [scratchCardDismissed, setScratchCardDismissed] = useState(false);
+  const [scratchCardEnabled, setScratchCardEnabled] = useState(true);
+  const [scratchCardDelay, setScratchCardDelay] = useState(10);
 
   const sessionId = getSessionId();
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -171,6 +173,7 @@ export default function PublicTurf() {
       fetchOffers();
       fetchFirstBookingOffers();
       fetchLoyaltyMilestoneOffers();
+      fetchScratchCardSettings();
     }
   }, [turf]);
 
@@ -298,6 +301,20 @@ export default function PublicTurf() {
       .or(`turf_id.eq.${turf.id},turf_id.is.null`);
     
     setFirstBookingOffers(data || []);
+  };
+
+  const fetchScratchCardSettings = async () => {
+    if (!turf) return;
+    const { data } = await supabase
+      .from('turf_engines')
+      .select('scratch_card_enabled, scratch_card_delay_seconds')
+      .eq('turf_id', turf.id)
+      .maybeSingle();
+    
+    if (data) {
+      setScratchCardEnabled(data.scratch_card_enabled ?? true);
+      setScratchCardDelay(data.scratch_card_delay_seconds ?? 10);
+    }
   };
 
   const fetchLoyaltyMilestoneOffers = async () => {
@@ -1030,8 +1047,8 @@ export default function PublicTurf() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Scratch Card Offer Popup - Shows after 10 seconds */}
-      {scratchCardOffer && !scratchCardDismissed && (
+      {/* Scratch Card Offer Popup - Shows based on turf engine settings */}
+      {scratchCardEnabled && scratchCardOffer && !scratchCardDismissed && (
         <ScratchCardOffer
           offer={{
             id: scratchCardOffer.id,
@@ -1041,7 +1058,7 @@ export default function PublicTurf() {
             discount_type: scratchCardOffer.discount_type,
             discount_value: scratchCardOffer.discount_value,
           }}
-          delaySeconds={10}
+          delaySeconds={scratchCardDelay}
           onClose={() => setScratchCardDismissed(true)}
           onReveal={() => {
             // Track conversion

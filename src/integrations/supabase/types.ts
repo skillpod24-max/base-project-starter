@@ -922,6 +922,8 @@ export type Database = {
           scarcity_enabled: boolean | null
           scarcity_message: string | null
           scarcity_threshold: number | null
+          scratch_card_delay_seconds: number | null
+          scratch_card_enabled: boolean | null
           social_proof_enabled: boolean | null
           social_proof_message: string | null
           social_proof_time_window: string | null
@@ -947,6 +949,8 @@ export type Database = {
           scarcity_enabled?: boolean | null
           scarcity_message?: string | null
           scarcity_threshold?: number | null
+          scratch_card_delay_seconds?: number | null
+          scratch_card_enabled?: boolean | null
           social_proof_enabled?: boolean | null
           social_proof_message?: string | null
           social_proof_time_window?: string | null
@@ -972,6 +976,8 @@ export type Database = {
           scarcity_enabled?: boolean | null
           scarcity_message?: string | null
           scarcity_threshold?: number | null
+          scratch_card_delay_seconds?: number | null
+          scratch_card_enabled?: boolean | null
           social_proof_enabled?: boolean | null
           social_proof_message?: string | null
           social_proof_time_window?: string | null
