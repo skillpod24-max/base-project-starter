@@ -96,6 +96,17 @@ export function ScratchCardOffer({
     return (transparent / total) * 100;
   };
 
+  // Haptic feedback helper
+  const triggerHaptic = (pattern: number | number[] = 10) => {
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate(pattern);
+      } catch {
+        // Vibration not supported or blocked
+      }
+    }
+  };
+
   const scratch = (x: number, y: number) => {
     if (!canvasRef.current || isRevealed) return;
 
@@ -123,6 +134,9 @@ export function ScratchCardOffer({
       ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
       ctx.lineTo(canvasX, canvasY);
       ctx.stroke();
+      
+      // Gentle haptic feedback while scratching
+      triggerHaptic(5);
     }
     lastPosRef.current = { x: canvasX, y: canvasY };
 
@@ -139,6 +153,9 @@ export function ScratchCardOffer({
     setIsRevealed(true);
     setShowConfetti(true);
     onReveal?.();
+    
+    // Strong haptic feedback on reveal
+    triggerHaptic([50, 30, 100, 30, 150]);
     
     // Clear canvas completely
     if (canvasRef.current) {
