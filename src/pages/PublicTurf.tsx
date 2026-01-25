@@ -20,6 +20,9 @@ import { LoyaltyProgressBar } from '@/components/LoyaltyProgressBar';
 import { OfferMiniBar } from '@/components/turf/OfferMiniBar';
 import { ConversionTriggers } from '@/components/turf/ConversionTriggers';
 import { ScratchCardOffer } from '@/components/turf/ScratchCardOffer';
+import { OfferShowcase } from '@/components/turf/OfferShowcase';
+import { StickyBookingBar } from '@/components/turf/StickyBookingBar';
+import { SlotDemandTimer } from '@/components/turf/SlotDemandTimer';
 
 interface Turf {
   id: string;
@@ -1764,6 +1767,20 @@ export default function PublicTurf() {
           <Link to="/auth" className="text-emerald-600 hover:underline">Turf Management →</Link>
         </div>
       </footer>
+
+      {/* Sticky Bottom Booking Bar - Mobile Only */}
+      <StickyBookingBar
+        selectedSlot={selectedSlot}
+        duration={duration}
+        pricing={pricing}
+        isLoggedIn={!!user}
+        isBooking={booking}
+        holdTimer={holdTimer}
+        onBookNow={handleBooking}
+        onScrollToBooking={() => {
+          document.querySelector('.lg\\:sticky')?.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
 
       {/* Booking Ticket Modal */}
       {ticketData && (

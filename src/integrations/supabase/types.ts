@@ -14,6 +14,133 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_test_assignments: {
+        Row: {
+          assigned_at: string
+          converted: boolean
+          converted_at: string | null
+          id: string
+          session_id: string
+          turf_id: string
+          variant_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          converted?: boolean
+          converted_at?: string | null
+          id?: string
+          session_id: string
+          turf_id: string
+          variant_id: string
+        }
+        Update: {
+          assigned_at?: string
+          converted?: boolean
+          converted_at?: string | null
+          id?: string
+          session_id?: string
+          turf_id?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_test_assignments_turf_id_fkey"
+            columns: ["turf_id"]
+            isOneToOne: false
+            referencedRelation: "turfs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_test_assignments_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "ab_test_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_test_metrics: {
+        Row: {
+          conversions: number
+          created_at: string
+          id: string
+          impressions: number
+          metric_date: string
+          variant_id: string
+        }
+        Insert: {
+          conversions?: number
+          created_at?: string
+          id?: string
+          impressions?: number
+          metric_date?: string
+          variant_id: string
+        }
+        Update: {
+          conversions?: number
+          created_at?: string
+          id?: string
+          impressions?: number
+          metric_date?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_test_metrics_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "ab_test_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_test_variants: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          traffic_percentage: number
+          turf_id: string
+          updated_at: string
+          user_id: string
+          variant_name: string
+          variant_type: string
+          variant_value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          traffic_percentage?: number
+          turf_id: string
+          updated_at?: string
+          user_id: string
+          variant_name: string
+          variant_type: string
+          variant_value: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          traffic_percentage?: number
+          turf_id?: string
+          updated_at?: string
+          user_id?: string
+          variant_name?: string
+          variant_type?: string
+          variant_value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_test_variants_turf_id_fkey"
+            columns: ["turf_id"]
+            isOneToOne: false
+            referencedRelation: "turfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           accent_color: string
